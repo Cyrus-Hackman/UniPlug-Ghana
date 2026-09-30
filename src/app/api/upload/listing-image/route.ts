@@ -9,6 +9,8 @@ import {
 import { getCurrentUserId } from "@/lib/helpers"
 import { createSupabaseAdmin, generateImagePath } from "@/lib/supabase"
 
+export const dynamic = "force-dynamic"
+
 // POST /api/upload/listing-image
 export async function POST(req: NextRequest) {
   try {
