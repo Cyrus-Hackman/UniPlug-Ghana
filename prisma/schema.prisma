@@ -1,0 +1,757 @@
+// ============================================================
+// Student Marketplace — Prisma Schema
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  PENDING_VERIFICATION
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  EMAIL_VERIFIED
+  STUDENT_VERIFIED
+  FULLY_VERIFIED
+}
+
+enum ListingType {
+  SELL
+  EXCHANGE
+  LEND
+  GIVEAWAY
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  RESERVED
+  SOLD
+  BORROWED
+  UNAVAILABLE
+  EXPIRED
+  REMOVED
+}
+
+enum PriceType {
+  FIXED
+  NEGOTIABLE
+  FREE
+  CONTACT
+}
+
+enum Condition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  USED
+}
+
+enum TransactionType {
+  PURCHASE
+  EXCHANGE
+  BORROW
+  LEND
+  GIVEAWAY
+}
+
+enum TransactionStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum BorrowingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE
+  RETURNED
+  OVERDUE
+  CANCELLED
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportReason {
+  SCAM
+  FRAUD
+  FAKE_ITEM
+  INAPPROPRIATE_CONTENT
+  HARASSMENT
+  COUNTERFEIT
+  SPAM
+  OTHER
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  NEW_OFFER
+  OFFER_ACCEPTED
+  OFFER_REJECTED
+  OFFER_COUNTERED
+  BORROW_REQUEST
+  BORROW_APPROVED
+  BORROW_REJECTED
+  RETURN_REMINDER
+  LISTING_SOLD
+  LISTING_RESERVED
+  ACCOUNT_VERIFIED
+  REPORT_RESOLVED
+  NEW_REVIEW
+  PRICE_DROP
+  LISTING_EXPIRED
+}
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  PLATFORM
+  BANK_TRANSFER
+  NOT_SET
+}
+
+enum ExchangeStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  WITHDRAWN
+  COMPLETED
+}
+
+// ============================================================
+// USERS & PROFILES
+// ============================================================
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  emailVerified     DateTime?
+  passwordHash      String?
+  role              Role               @default(STUDENT)
+  status            UserStatus         @default(ACTIVE)
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  lastSeenAt        DateTime?
+
+  profile           Profile?
+  listings          Listing[]
+  sentMessages      Message[]          @relation("SentMessages")
+  conversations     ConversationParticipant[]
+  offersAsBuyer     Offer[]            @relation("BuyerOffers")
+  offersAsSeller    Offer[]            @relation("SellerOffers")
+  transactionsAsBuyer  Transaction[]  @relation("BuyerTransactions")
+  transactionsAsSeller Transaction[]  @relation("SellerTransactions")
+  borrowingRequests BorrowingRequest[] @relation("BorrowerRequests")
+  lendingRequests   BorrowingRequest[] @relation("LenderRequests")
+  reviewsGiven      Review[]           @relation("ReviewsGiven")
+  reviewsReceived   Review[]           @relation("ReviewsReceived")
+  favourites        Favourite[]
+  notifications     Notification[]
+  reportsFiled      Report[]           @relation("ReportsFiled")
+  reportsAgainst    Report[]           @relation("ReportsAgainst")
+  blockedUsers      BlockedUser[]      @relation("Blocker")
+  blockedBy         BlockedUser[]      @relation("Blocked")
+  verificationRequests VerificationRequest[]
+  adminActions      AdminAction[]      @relation("AdminActionBy")
+  adminActionsOn    AdminAction[]      @relation("AdminActionOn")
+  exchangeOffersAsBuyer ExchangeOffer[]  @relation("ExchangeBuyer")
+  exchangeOffersAsSeller ExchangeOffer[] @relation("ExchangeSeller")
+
+  @@index([email])
+  @@index([status])
+  @@index([role])
+  @@map("users")
+}
+
+model Profile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName      String
+  phone         String?
+  phoneVisible  Boolean   @default(false)
+  bio           String?
+  avatarUrl     String?
+
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+  campusId      String?
+  campus        Campus?   @relation(fields: [campusId], references: [id])
+  programme     String?
+  level         String?
+  studentId     String?
+
+  averageRating Float     @default(0)
+  ratingCount   Int       @default(0)
+  completedTransactions Int @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([institutionId])
+  @@map("profiles")
+}
+
+// ============================================================
+// INSTITUTIONS & CAMPUSES
+// ============================================================
+
+model Institution {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  shortName   String?
+  slug        String    @unique
+  emailDomain String?   // e.g. "st.ug.edu.gh" for student email verification
+  location    String?   // city/town
+  region      String?
+  country     String    @default("Ghana")
+  logoUrl     String?
+  website     String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  campuses    Campus[]
+  profiles    Profile[]
+  listings    Listing[]
+
+  @@index([slug])
+  @@map("institutions")
+}
+
+model Campus {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  slug          String
+  location      String?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  profiles      Profile[]
+  listings      Listing[]
+
+  @@unique([institutionId, slug])
+  @@index([institutionId])
+  @@map("campuses")
+}
+
+// ============================================================
+// CATEGORIES
+// ============================================================
+
+model Category {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  slug        String        @unique
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean       @default(true)
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  subcategories Subcategory[]
+  listings      Listing[]
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model Subcategory {
+  id          String    @id @default(cuid())
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  listings    Listing[]
+
+  @@unique([categoryId, slug])
+  @@index([categoryId])
+  @@map("subcategories")
+}
+
+// ============================================================
+// LISTINGS
+// ============================================================
+
+model Listing {
+  id              String        @id @default(cuid())
+  sellerId        String
+  seller          User          @relation(fields: [sellerId], references: [id])
+
+  title           String
+  slug            String        @unique
+  description     String
+  categoryId      String
+  category        Category      @relation(fields: [categoryId], references: [id])
+  subcategoryId   String?
+  subcategory     Subcategory?  @relation(fields: [subcategoryId], references: [id])
+
+  type            ListingType   @default(SELL)
+  status          ListingStatus @default(ACTIVE)
+  condition       Condition     @default(GOOD)
+
+  // Pricing
+  price           Float?
+  priceType       PriceType     @default(FIXED)
+  isNegotiable    Boolean       @default(false)
+  isFree          Boolean       @default(false)
+
+  // For lending
+  dailyRate       Float?
+  weeklyRate      Float?
+  deposit         Float?
+  maxLendingDays  Int?
+  availableFrom   DateTime?
+  availableTo     DateTime?
+  lendingTerms    String?
+
+  // For exchange
+  exchangeFor     String?       // What they want in exchange
+  exchangeExtra   Float?        // Additional cash they want/will pay
+
+  // Location
+  institutionId   String?
+  institution     Institution?  @relation(fields: [institutionId], references: [id])
+  campusId        String?
+  campus          Campus?       @relation(fields: [campusId], references: [id])
+  area            String?
+  meetingLocation String?
+
+  // Meta
+  views           Int           @default(0)
+  isFeatured      Boolean       @default(false)
+  expiresAt       DateTime?
+  publishedAt     DateTime?
+  deletedAt       DateTime?
+
+  tags            String[]      @default([])
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  images          ListingImage[]
+  favourites      Favourite[]
+  offers          Offer[]
+  exchangeOffers  ExchangeOffer[]
+  transactions    Transaction[]
+  borrowingRequests BorrowingRequest[]
+  reports         Report[]      @relation("ListingReports")
+  conversations   Conversation[]
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([type])
+  @@index([institutionId])
+  @@index([campusId])
+  @@index([slug])
+  @@index([isFeatured])
+  @@index([createdAt])
+  @@map("listings")
+}
+
+model ListingImage {
+  id          String    @id @default(cuid())
+  listingId   String
+  listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url         String
+  storagePath String?
+  isPrimary   Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  altText     String?
+  createdAt   DateTime  @default(now())
+
+  @@index([listingId])
+  @@map("listing_images")
+}
+
+// ============================================================
+// FAVOURITES
+// ============================================================
+
+model Favourite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+  @@index([listingId])
+  @@map("favourites")
+}
+
+// ============================================================
+// MESSAGING
+// ============================================================
+
+model Conversation {
+  id          String    @id @default(cuid())
+  listingId   String?
+  listing     Listing?  @relation(fields: [listingId], references: [id])
+  subject     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastMessageAt DateTime?
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([listingId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id              String       @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unreadCount     Int          @default(0)
+  joinedAt        DateTime     @default(now())
+  lastReadAt      DateTime?
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id              String       @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User         @relation("SentMessages", fields: [senderId], references: [id])
+  content         String
+  isRead          Boolean      @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ============================================================
+// OFFERS
+// ============================================================
+
+model Offer {
+  id          String      @id @default(cuid())
+  listingId   String
+  listing     Listing     @relation(fields: [listingId], references: [id])
+  buyerId     String
+  buyer       User        @relation("BuyerOffers", fields: [buyerId], references: [id])
+  sellerId    String
+  seller      User        @relation("SellerOffers", fields: [sellerId], references: [id])
+
+  amount      Float
+  message     String?
+  status      OfferStatus @default(PENDING)
+  parentOfferId String?   // for counter-offers
+  parentOffer   Offer?    @relation("CounterOffers", fields: [parentOfferId], references: [id])
+  counterOffers Offer[]   @relation("CounterOffers")
+
+  expiresAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@map("offers")
+}
+
+// ============================================================
+// EXCHANGES
+// ============================================================
+
+model ExchangeOffer {
+  id            String         @id @default(cuid())
+  listingId     String
+  listing       Listing        @relation(fields: [listingId], references: [id])
+  proposerId    String
+  proposer      User           @relation("ExchangeBuyer", fields: [proposerId], references: [id])
+  ownerId       String
+  owner         User           @relation("ExchangeSeller", fields: [ownerId], references: [id])
+
+  offeredItem   String         // What they're offering
+  offeredItemDescription String?
+  additionalCash Float?        // Extra cash they'll pay
+  message       String?
+  status        ExchangeStatus @default(PENDING)
+  parentOfferId String?
+  parentOffer   ExchangeOffer? @relation("CounterExchanges", fields: [parentOfferId], references: [id])
+  counterOffers ExchangeOffer[] @relation("CounterExchanges")
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([listingId])
+  @@index([proposerId])
+  @@index([ownerId])
+  @@map("exchange_offers")
+}
+
+// ============================================================
+// BORROWING / LENDING
+// ============================================================
+
+model BorrowingRequest {
+  id            String          @id @default(cuid())
+  listingId     String
+  listing       Listing         @relation(fields: [listingId], references: [id])
+  borrowerId    String
+  borrower      User            @relation("BorrowerRequests", fields: [borrowerId], references: [id])
+  lenderId      String
+  lender        User            @relation("LenderRequests", fields: [lenderId], references: [id])
+
+  startDate     DateTime
+  endDate       DateTime
+  returnedAt    DateTime?
+  message       String?
+  totalPrice    Float?
+  depositPaid   Float?
+  status        BorrowingStatus @default(PENDING)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  transaction   Transaction?
+
+  @@index([listingId])
+  @@index([borrowerId])
+  @@index([lenderId])
+  @@index([status])
+  @@map("borrowing_requests")
+}
+
+// ============================================================
+// TRANSACTIONS
+// ============================================================
+
+model Transaction {
+  id                String            @id @default(cuid())
+  listingId         String
+  listing           Listing           @relation(fields: [listingId], references: [id])
+  buyerId           String
+  buyer             User              @relation("BuyerTransactions", fields: [buyerId], references: [id])
+  sellerId          String
+  seller            User              @relation("SellerTransactions", fields: [sellerId], references: [id])
+  borrowingRequestId String?          @unique
+  borrowingRequest  BorrowingRequest? @relation(fields: [borrowingRequestId], references: [id])
+
+  type              TransactionType
+  status            TransactionStatus @default(PENDING)
+  amount            Float?
+  paymentMethod     PaymentMethod     @default(NOT_SET)
+  isPlatformPayment Boolean           @default(false)
+  notes             String?
+
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  reviews           Review[]
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([type])
+  @@map("transactions")
+}
+
+// ============================================================
+// REVIEWS
+// ============================================================
+
+model Review {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  reviewerId    String
+  reviewer      User        @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId    String
+  reviewee      User        @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+
+  rating        Int         // 1-5
+  comment       String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([transactionId, reviewerId])
+  @@index([revieweeId])
+  @@index([reviewerId])
+  @@map("reviews")
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+
+model Report {
+  id          String       @id @default(cuid())
+  reporterId  String
+  reporter    User         @relation("ReportsFiled", fields: [reporterId], references: [id])
+  reportedUserId String?
+  reportedUser  User?      @relation("ReportsAgainst", fields: [reportedUserId], references: [id])
+  listingId   String?
+  listing     Listing?     @relation("ListingReports", fields: [listingId], references: [id])
+
+  reason      ReportReason
+  description String?
+  status      ReportStatus @default(PENDING)
+  adminNotes  String?
+  resolvedAt  DateTime?
+  resolvedBy  String?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([reporterId])
+  @@index([status])
+  @@index([listingId])
+  @@map("reports")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        NotificationType
+  title       String
+  body        String
+  link        String?
+  isRead      Boolean          @default(false)
+  metadata    Json?
+
+  createdAt   DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// ============================================================
+// BLOCKED USERS
+// ============================================================
+
+model BlockedUser {
+  id          String   @id @default(cuid())
+  blockerId   String
+  blocker     User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId   String
+  blocked     User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@map("blocked_users")
+}
+
+// ============================================================
+// VERIFICATION REQUESTS
+// ============================================================
+
+model VerificationRequest {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String    // "email", "student_id", "admin"
+  studentIdUrl  String?
+  notes         String?
+  status        String    @default("pending") // pending, approved, rejected
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("verification_requests")
+}
+
+// ============================================================
+// ADMIN AUDIT LOG
+// ============================================================
+
+model AdminAction {
+  id          String   @id @default(cuid())
+  adminId     String
+  admin       User     @relation("AdminActionBy", fields: [adminId], references: [id])
+  targetUserId String?
+  targetUser  User?    @relation("AdminActionOn", fields: [targetUserId], references: [id])
+  action      String
+  details     Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetUserId])
+  @@map("admin_actions")
+}

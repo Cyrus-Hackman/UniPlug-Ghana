@@ -1,0 +1,551 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* ============================================================
+   CSS CUSTOM PROPERTIES — Design Tokens
+   ============================================================ */
+:root {
+  /* Primary — Deep Green */
+  --primary: 158 64% 28%;
+  --primary-foreground: 0 0% 100%;
+  --primary-50: 158 64% 95%;
+  --primary-100: 158 64% 88%;
+  --primary-200: 158 64% 75%;
+  --primary-500: 158 64% 45%;
+  --primary-600: 158 64% 35%;
+  --primary-700: 158 64% 28%;
+  --primary-800: 158 64% 20%;
+  --primary-900: 158 64% 12%;
+
+  /* Gold Accent */
+  --gold: 43 96% 52%;
+  --gold-light: 43 96% 90%;
+  --gold-dark: 43 96% 38%;
+
+  /* Neutral */
+  --background: 0 0% 99%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 158 64% 28%;
+
+  /* Semantic */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 45%;
+  --warning: 43 96% 52%;
+  --info: 199 89% 48%;
+
+  /* Radius */
+  --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-glow: 0 0 20px rgb(16 115 68 / 0.15);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   TAILWIND BASE LAYER OVERRIDES
+   ============================================================ */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  input, textarea, select {
+    font-family: inherit;
+  }
+}
+
+/* ============================================================
+   COMPONENT CLASSES
+   ============================================================ */
+@layer components {
+  /* === Buttons === */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-gold,
+  .btn-ghost,
+  .btn-danger,
+  .btn-icon {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none;
+  }
+
+  .btn-primary {
+    @apply bg-green-800 text-white hover:bg-green-700 active:scale-95 shadow-md hover:shadow-lg focus-visible:ring-green-700;
+    background: linear-gradient(135deg, #1a6b40 0%, #0f5a30 100%);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #1e7d4a 0%, #166a38 100%);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    @apply bg-white text-green-800 border-2 border-green-800 hover:bg-green-50 active:scale-95 focus-visible:ring-green-700;
+  }
+
+  .btn-gold {
+    @apply text-green-900 font-bold active:scale-95 shadow-md;
+    background: linear-gradient(135deg, #f5c518 0%, #e6b800 100%);
+  }
+
+  .btn-ghost {
+    @apply text-gray-600 hover:bg-gray-100 hover:text-gray-900 active:scale-95;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 active:scale-95 focus-visible:ring-red-500;
+  }
+
+  .btn-sm {
+    @apply h-8 px-3 text-sm;
+  }
+
+  .btn-md {
+    @apply h-10 px-5 text-sm;
+  }
+
+  .btn-lg {
+    @apply h-12 px-8 text-base;
+  }
+
+  .btn-xl {
+    @apply h-14 px-10 text-lg;
+  }
+
+  .btn-icon {
+    @apply p-2 rounded-xl;
+  }
+
+  /* === Cards === */
+  .card,
+  .card-hover,
+  .listing-card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-200;
+  }
+
+  .card-hover,
+  .listing-card {
+    @apply hover:shadow-lg hover:-translate-y-1 hover:border-green-100;
+  }
+
+  .card-body {
+    @apply p-5;
+  }
+
+  /* === Badges === */
+  .badge,
+  .badge-green,
+  .badge-gold,
+  .badge-blue,
+  .badge-purple,
+  .badge-red,
+  .badge-gray,
+  .badge-verified,
+  .offer-pending,
+  .offer-accepted,
+  .offer-rejected,
+  .offer-countered,
+  .offer-withdrawn {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+
+  .badge-green {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .badge-gold {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-blue {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .badge-purple {
+    @apply bg-purple-100 text-purple-800;
+  }
+
+  .badge-red {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .badge-gray {
+    @apply bg-gray-100 text-gray-700;
+  }
+
+  .badge-verified {
+    @apply bg-green-100 text-green-800;
+  }
+
+  /* === Form inputs === */
+  .input,
+  .select {
+    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/20 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input-error {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-500/20;
+  }
+
+  .label {
+    @apply block text-sm font-semibold text-gray-700 mb-1.5;
+  }
+
+  .error-text {
+    @apply text-xs text-red-500 mt-1;
+  }
+
+  .select {
+    @apply appearance-none cursor-pointer;
+  }
+
+  /* === Price display === */
+  .price {
+    @apply font-bold text-green-800;
+  }
+
+  .price-free {
+    @apply font-bold text-emerald-600;
+  }
+
+  /* === Section containers === */
+  .section {
+    @apply py-12 md:py-16;
+  }
+
+  .container-main {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply text-2xl md:text-3xl font-bold text-gray-900 mb-2;
+  }
+
+  .section-subtitle {
+    @apply text-gray-500 text-base mb-8;
+  }
+
+  /* === Gradient text === */
+  .gradient-text {
+    background: linear-gradient(135deg, #1a6b40 0%, #d4a017 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* === Listing card === */
+  .listing-card {
+    @apply overflow-hidden cursor-pointer;
+  }
+
+  .listing-card-image {
+    @apply w-full aspect-square object-cover bg-gray-100 transition-transform duration-300;
+  }
+
+  .listing-card:hover .listing-card-image {
+    transform: scale(1.04);
+  }
+
+  /* === Navigation === */
+  .nav-link {
+    @apply flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 transition-all duration-150 hover:bg-green-50 hover:text-green-800;
+  }
+
+  .nav-link-active {
+    @apply bg-green-50 text-green-800 font-semibold;
+  }
+
+  /* === Avatar === */
+  .avatar {
+    @apply rounded-full bg-green-100 flex items-center justify-center font-bold text-green-800 shrink-0 overflow-hidden;
+  }
+
+  /* === Loading skeleton === */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded-lg;
+  }
+
+  /* === Divider === */
+  .divider {
+    @apply border-t border-gray-100 my-4;
+  }
+
+  /* === Page header === */
+  .page-header {
+    @apply bg-white border-b border-gray-100 py-6;
+  }
+
+  /* === Empty state === */
+  .empty-state {
+    @apply flex flex-col items-center justify-center text-center py-16 px-4;
+  }
+
+  /* === Star rating === */
+  .star-filled {
+    @apply text-yellow-400;
+  }
+
+  .star-empty {
+    @apply text-gray-200;
+  }
+}
+
+/* ============================================================
+   CUSTOM ANIMATIONS
+   ============================================================ */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 115, 68, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 115, 68, 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ============================================================
+   SCROLLBAR STYLING
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(214 32% 80%);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(214 32% 65%);
+}
+
+/* ============================================================
+   CHAT / MESSAGING
+   ============================================================ */
+.message-bubble-sent {
+  @apply bg-green-800 text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-xs ml-auto;
+  background: linear-gradient(135deg, #1a6b40 0%, #0f5a30 100%);
+}
+
+.message-bubble-received {
+  @apply bg-gray-100 text-gray-900 rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-xs;
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.hero-gradient {
+  background: linear-gradient(135deg, #0a3d20 0%, #1a6b40 40%, #2d8a5a 70%, #1a5e36 100%);
+}
+
+/* ============================================================
+   CATEGORY GRID
+   ============================================================ */
+.category-card {
+  @apply flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white border border-gray-100 hover:border-green-200 hover:shadow-md transition-all duration-200 cursor-pointer text-center;
+}
+
+.category-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   IMAGE UPLOAD
+   ============================================================ */
+.dropzone {
+  @apply border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center transition-all duration-200 cursor-pointer hover:border-green-500 hover:bg-green-50/50;
+}
+
+.dropzone-active {
+  @apply border-green-500 bg-green-50/50;
+}
+
+/* ============================================================
+   MOBILE BOTTOM NAV
+   ============================================================ */
+.mobile-nav {
+  @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-2 py-1 z-50 md:hidden;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+.mobile-nav-item {
+  @apply flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 px-2 rounded-xl text-gray-400 transition-all duration-150 text-xs font-medium;
+}
+
+.mobile-nav-item-active {
+  @apply text-green-800;
+}
+
+/* ============================================================
+   TOAST STYLES
+   ============================================================ */
+.toast {
+  @apply fixed bottom-4 right-4 bg-white border border-gray-200 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 text-sm font-medium z-[100];
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.toast-success {
+  @apply border-l-4 border-l-green-500;
+}
+
+.toast-error {
+  @apply border-l-4 border-l-red-500;
+}
+
+/* ============================================================
+   STAR RATING COMPONENT
+   ============================================================ */
+.star-rating {
+  @apply flex gap-0.5;
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+.filter-chip {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border border-gray-200 bg-white hover:border-green-400 hover:bg-green-50 hover:text-green-800 transition-all cursor-pointer;
+}
+
+.filter-chip-active {
+  @apply border-green-600 bg-green-50 text-green-800;
+}
+
+/* ============================================================
+   PROFILE
+   ============================================================ */
+.profile-stat {
+  @apply text-center;
+}
+
+.profile-stat-value {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+.profile-stat-label {
+  @apply text-xs text-gray-500 mt-0.5;
+}
+
+/* ============================================================
+   OFFER STATUS BADGES
+   ============================================================ */
+.offer-pending { @apply bg-yellow-50 text-yellow-700 border border-yellow-200; }
+.offer-accepted { @apply bg-green-50 text-green-700 border border-green-200; }
+.offer-rejected { @apply bg-red-50 text-red-700 border border-red-200; }
+.offer-countered { @apply bg-blue-50 text-blue-700 border border-blue-200; }
+.offer-withdrawn { @apply bg-gray-50 text-gray-500 border border-gray-200; }
+
+/* ============================================================
+   RESPONSIVE HELPERS
+   ============================================================ */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none;
+  }
+
+  body {
+    padding-bottom: 72px;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-desktop {
+    display: none;
+  }
+}
