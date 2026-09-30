@@ -36,6 +36,18 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     const path = generateImagePath(currentUserId, listingId || "temp", file.name)
 
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")) {
+      return successResponse(
+        {
+          url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
+          path: `demo/${file.name}`,
+        },
+        "Image uploaded successfully (demo mode)!",
+        undefined,
+        201
+      )
+    }
+
     const admin = createSupabaseAdmin()
     const { data, error } = await admin.storage
       .from("listings")
