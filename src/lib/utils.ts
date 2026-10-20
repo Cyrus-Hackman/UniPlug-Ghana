@@ -96,6 +96,34 @@ export function getInitials(name: string): string {
     .slice(0, 2)
 }
 
+export function getSavedListingIds(): string[] {
+  if (typeof window === "undefined") return []
+
+  try {
+    const saved = localStorage.getItem("student-marketplace-favourites")
+    return saved ? JSON.parse(saved) : []
+  } catch {
+    return []
+  }
+}
+
+export function isListingSaved(listingId: string): boolean {
+  return getSavedListingIds().includes(listingId)
+}
+
+export function toggleSavedListing(listingId: string): boolean {
+  if (typeof window === "undefined") return false
+
+  const saved = new Set(getSavedListingIds())
+  const nextValue = !saved.has(listingId)
+
+  if (nextValue) saved.add(listingId)
+  else saved.delete(listingId)
+
+  localStorage.setItem("student-marketplace-favourites", JSON.stringify([...saved]))
+  return nextValue
+}
+
 // Calculate average rating
 export function calculateAverageRating(ratings: number[]): number {
   if (ratings.length === 0) return 0

@@ -28,7 +28,7 @@ import { MOCK_LISTINGS, MOCK_CATEGORIES, MOCK_INSTITUTIONS } from "@/lib/mock-da
 
 async function getHomeData() {
   try {
-    const [recentListings, categories, featuredListings, stats] = await Promise.all([
+    const [recentListings, categories, featuredListings, institutions, stats] = await Promise.all([
       prisma.listing.findMany({
         where: { status: "ACTIVE", deletedAt: null },
         take: 8,
@@ -71,6 +71,12 @@ async function getHomeData() {
           _count: { select: { favourites: true } },
         },
       }),
+      prisma.institution.findMany({
+        where: { isActive: true },
+        orderBy: { name: "asc" },
+        take: 8,
+        include: { campuses: { where: { isActive: true }, take: 4, orderBy: { name: "asc" } } },
+      }),
       Promise.all([
         prisma.listing.count({ where: { status: "ACTIVE" } }),
         prisma.user.count({ where: { status: "ACTIVE" } }),
@@ -80,7 +86,7 @@ async function getHomeData() {
     ])
 
     if (recentListings.length > 0) {
-      return { recentListings, categories, featuredListings, stats }
+      return { recentListings, categories, featuredListings, institutions, stats }
     }
   } catch (error) {
     // Graceful fallback to demo listings if DB is not yet connected
@@ -91,6 +97,7 @@ async function getHomeData() {
     recentListings: MOCK_LISTINGS,
     categories: MOCK_CATEGORIES,
     featuredListings: MOCK_LISTINGS.filter((l) => l.isFeatured),
+    institutions: MOCK_INSTITUTIONS,
     stats: [MOCK_LISTINGS.length + 120, 480, MOCK_INSTITUTIONS.length + 8, 350],
   }
 }
@@ -116,7 +123,7 @@ const categoryEmojis: Record<string, string> = {
 }
 
 export default async function HomePage() {
-  const { recentListings, categories, featuredListings, stats } = await getHomeData()
+  const { recentListings, categories, featuredListings, institutions, stats } = await getHomeData()
   const [totalListings, totalUsers, totalInstitutions, totalTransactions] = stats
 
   return (
@@ -243,6 +250,43 @@ export default async function HomePage() {
                   Categories are being set up. Please seed the database.
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        <section className="section bg-white">
+          <div className="container-main">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="section-title">Browse by campus</h2>
+                <p className="section-subtitle !mb-0">Discover what students near you are selling</p>
+              </div>
+              <Link href="/marketplace" className="text-sm font-semibold text-green-800 flex items-center gap-1 hover:gap-2 transition-all">
+                Explore campus listings <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {institutions.map((institution) => (
+                <Link
+                  key={institution.id}
+                  href={`/marketplace?institution=${institution.slug}`}
+                  className="group rounded-2xl border border-gray-200 bg-gray-50 p-4 hover:border-green-300 hover:bg-green-50 transition-all"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-green-800">
+                      {institution.shortName || institution.name.slice(0, 4)}
+                    </span>
+                    <span className="text-xs font-medium text-gray-500">{institution.campuses?.length || 0} campuses</span>
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-base mb-2">{institution.name}</h3>
+                  <div className="space-y-1">
+                    {(institution.campuses || []).slice(0, 3).map((campus) => (
+                      <div key={campus.id} className="text-sm text-gray-600">• {campus.name}</div>
+                    ))}
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </section>

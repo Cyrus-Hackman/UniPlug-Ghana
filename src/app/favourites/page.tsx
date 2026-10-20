@@ -1,52 +1,52 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import Navbar from "@/components/layout/navbar"
 import ListingCard from "@/components/marketplace/listing-card"
 import Link from "next/link"
 import { Heart, ShoppingBag, ArrowRight, Loader2 } from "lucide-react"
 import { MOCK_LISTINGS } from "@/lib/mock-data"
+import { getSavedListingIds } from "@/lib/utils"
 
 export default function FavouritesPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-
   const [savedListings, setSavedListings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login?callbackUrl=/favourites")
-      return
-    }
-
-    if (session?.user?.id) {
-      fetchFavourites()
-    }
-  }, [session, status])
+    fetchFavourites()
+  }, [])
 
   const fetchFavourites = async () => {
     setLoading(true)
     try {
       const res = await fetch("/api/users/favourites")
-      const data = await res.json()
-      if (data.success && data.data && data.data.length > 0) {
-        setSavedListings(data.data.map((f: any) => f.listing || f))
-      } else {
-        // Fallback to sample items for demo
-        setSavedListings(MOCK_LISTINGS.slice(0, 4))
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success && data.data && data.data.length > 0) {
+          setSavedListings(data.data.map((f: any) => f.listing || f))
+          setLoading(false)
+          return
+        }
       }
     } catch {
-      setSavedListings(MOCK_LISTINGS.slice(0, 4))
-    } finally {
-      setLoading(false)
+      // Ignore and fall back to local storage below.
     }
+
+    const savedIds = getSavedListingIds()
+    const localSaved = MOCK_LISTINGS.filter((listing) => savedIds.includes(listing.id))
+    setSavedListings(localSaved)
+    setLoading(false)
   }
 
   const handleRemove = (listingId: string) => {
     setSavedListings((prev) => prev.filter((l) => l.id !== listingId))
+
+    if (typeof window !== "undefined") {
+      const current = new Set(getSavedListingIds())
+      current.delete(listingId)
+      localStorage.setItem("student-marketplace-favourites", JSON.stringify([...current]))
+    }
+
     fetch(`/api/listings/${listingId}/favourite`, { method: "POST" }).catch(() => {})
   }
 

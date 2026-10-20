@@ -176,11 +176,16 @@ export async function GET(req: NextRequest) {
   if (minPrice !== undefined) filtered = filtered.filter((l) => (l.price ?? 0) >= minPrice)
   if (maxPrice !== undefined) filtered = filtered.filter((l) => (l.price ?? 0) <= maxPrice)
 
-  if (sortBy === "price_asc") {
-    filtered.sort((a, b) => (a.price ?? 0) - (b.price ?? 0))
+  if (institution && campus) {
+    filtered = filtered.filter(
+      (l) => l.institution.slug === institution && (l.campus?.slug === campus || !campus)
+    )
+  }
+
+  if (sortBy === "price_asc") {    filtered.sort((a, b) => (a.price ?? 0) - (b.price ?? 0))
   } else if (sortBy === "price_desc") {
     filtered.sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
-  } else if (sortBy === "views") {
+  } else if (sortBy === "popular") {
     filtered.sort((a, b) => b.views - a.views)
   }
 

@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Heart, MapPin, Star, CheckCircle, Eye } from "lucide-react"
 import { useState } from "react"
-import { cn, formatGHS, formatRelativeDate, getConditionLabel, getListingTypeLabel } from "@/lib/utils"
+import { cn, formatGHS, formatRelativeDate, getConditionLabel, getListingTypeLabel, isListingSaved, toggleSavedListing } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import { toast } from "@/components/ui/toaster"
 
@@ -45,7 +45,7 @@ interface ListingCardProps {
 
 export default function ListingCard({ listing, className, showSeller = true }: ListingCardProps) {
   const { data: session } = useSession()
-  const [isFav, setIsFav] = useState(listing.isFavourited || false)
+  const [isFav, setIsFav] = useState(listing.isFavourited || isListingSaved(listing.id))
   const [favLoading, setFavLoading] = useState(false)
 
   const primaryImage = listing.images.find((img) => img.isPrimary) || listing.images[0]
@@ -56,7 +56,13 @@ export default function ListingCard({ listing, className, showSeller = true }: L
     e.stopPropagation()
 
     if (!session) {
-      toast({ title: "Please sign in", description: "You need to be signed in to save listings.", variant: "warning" })
+      const nextValue = toggleSavedListing(listing.id)
+      setIsFav(nextValue)
+      toast({
+        title: nextValue ? "Saved!" : "Removed",
+        description: nextValue ? "Added to your saved items." : "Removed from your saved items.",
+        variant: "success",
+      })
       return
     }
 
@@ -71,9 +77,23 @@ export default function ListingCard({ listing, className, showSeller = true }: L
           description: data.data.isFavourited ? "Added to your favourites." : "Removed from favourites.",
           variant: "success",
         })
+      } else {
+        const nextValue = toggleSavedListing(listing.id)
+        setIsFav(nextValue)
+        toast({
+          title: nextValue ? "Saved locally" : "Removed locally",
+          description: "The app is using local saved items until the database is connected.",
+          variant: "warning",
+        })
       }
     } catch {
-      toast({ title: "Error", description: "Something went wrong.", variant: "error" })
+      const nextValue = toggleSavedListing(listing.id)
+      setIsFav(nextValue)
+      toast({
+        title: nextValue ? "Saved locally" : "Removed locally",
+        description: "The app is using local saved items until the database is connected.",
+        variant: "warning",
+      })
     } finally {
       setFavLoading(false)
     }

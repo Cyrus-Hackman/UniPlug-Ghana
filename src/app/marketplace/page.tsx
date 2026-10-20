@@ -27,6 +27,7 @@ interface Institution {
   name: string
   shortName: string | null
   slug: string
+  campuses?: { id: string; name: string; slug: string }[]
 }
 
 function MarketplaceContent() {
@@ -39,6 +40,7 @@ function MarketplaceContent() {
   const [totalPages, setTotalPages] = useState(1)
   const [categories, setCategories] = useState<Category[]>([])
   const [institutions, setInstitutions] = useState<Institution[]>([])
+  const [campusOptions, setCampusOptions] = useState<{ id: string; name: string; slug: string }[]>([])
   const [showFilters, setShowFilters] = useState(false)
 
   const q = searchParams.get("q") || ""
@@ -46,6 +48,7 @@ function MarketplaceContent() {
   const type = searchParams.get("type") || ""
   const condition = searchParams.get("condition") || ""
   const institution = searchParams.get("institution") || ""
+  const campus = searchParams.get("campus") || ""
   const sortBy = searchParams.get("sortBy") || "newest"
   const page = parseInt(searchParams.get("page") || "1")
   const minPrice = searchParams.get("minPrice") || ""
@@ -62,6 +65,7 @@ function MarketplaceContent() {
       if (type) params.set("type", type)
       if (condition) params.set("condition", condition)
       if (institution) params.set("institution", institution)
+      if (campus) params.set("campus", campus)
       if (minPrice) params.set("minPrice", minPrice)
       if (maxPrice) params.set("maxPrice", maxPrice)
       params.set("sortBy", sortBy)
@@ -80,7 +84,7 @@ function MarketplaceContent() {
     } finally {
       setLoading(false)
     }
-  }, [q, category, type, condition, institution, minPrice, maxPrice, sortBy, page])
+  }, [q, category, type, condition, institution, campus, minPrice, maxPrice, sortBy, page])
 
   useEffect(() => {
     fetchListings()
@@ -92,7 +96,11 @@ function MarketplaceContent() {
       if (d.success) setCategories(d.data)
     })
     fetch("/api/institutions").then(r => r.json()).then(d => {
-      if (d.success) setInstitutions(d.data)
+      if (d.success) {
+        setInstitutions(d.data)
+        const allCampuses = d.data.flatMap((institution: any) => institution.campuses || [])
+        setCampusOptions(allCampuses)
+      }
     })
   }, [])
 
@@ -108,7 +116,7 @@ function MarketplaceContent() {
     router.push("/marketplace")
   }
 
-  const hasFilters = q || category || type || condition || institution || minPrice || maxPrice
+  const hasFilters = q || category || type || condition || institution || campus || minPrice || maxPrice
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -137,6 +145,8 @@ function MarketplaceContent() {
     { value: "price_desc", label: "Price: High to Low" },
     { value: "popular", label: "Most Viewed" },
   ]
+
+  const selectedCampusName = campusOptions.find((campusOption) => campusOption.slug === campus)?.name
 
   return (
     <>
@@ -276,7 +286,10 @@ function MarketplaceContent() {
                   <label className="label">Institution</label>
                   <select
                     value={institution}
-                    onChange={e => updateFilter("institution", e.target.value)}
+                    onChange={e => {
+                      updateFilter("institution", e.target.value)
+                      if (!e.target.value) updateFilter("campus", "")
+                    }}
                     className="select"
                   >
                     <option value="">All Institutions</option>
@@ -287,6 +300,33 @@ function MarketplaceContent() {
                     ))}
                   </select>
                 </div>
+
+                {/* Campus */}
+                <div className="mb-5">
+                  <label className="label">Campus</label>
+                  <select
+                    value={campus}
+                    onChange={e => updateFilter("campus", e.target.value)}
+                    className="select"
+                    disabled={!institution && campusOptions.length === 0}
+                  >
+                    <option value="">All Campuses</option>
+                    {campusOptions
+                      .filter((campusOption) => {
+                        if (!institution) return true
+                        const matchingInstitution = institutions.find((inst) => inst.slug === institution)
+                        return matchingInstitution
+                          ? matchingInstitution.name === campusOption.name ||
+                            (matchingInstitution.campuses ?? []).some((campusItem: { slug: string }) => campusItem.slug === campusOption.slug)
+                          : true
+                      })
+                      .map((campusOption) => (
+                        <option key={campusOption.id} value={campusOption.slug}>
+                          {campusOption.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
             </aside>
 
@@ -294,9 +334,17 @@ function MarketplaceContent() {
             <div className="flex-1 min-w-0">
               {/* Results Bar */}
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-500">
-                  {loading ? "Loading..." : `${total.toLocaleString()} listing${total !== 1 ? "s" : ""} found`}
-                </p>
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {loading ? "Loading..." : `${total.toLocaleString()} listing${total !== 1 ? "s" : ""} found`}
+                  </p>
+                  {(institution || campus) && (
+                    <p className="text-xs text-green-700 mt-1">
+                      {institution && institutions.find((inst) => inst.slug === institution)?.shortName || institution}
+                      {selectedCampusName ? ` · ${selectedCampusName}` : ""}
+                    </p>
+                  )}
+                </div>
                 <select
                   value={sortBy}
                   onChange={e => updateFilter("sortBy", e.target.value)}

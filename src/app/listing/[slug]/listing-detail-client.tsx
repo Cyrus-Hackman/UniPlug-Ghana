@@ -29,6 +29,8 @@ import {
   getConditionLabel,
   getListingTypeLabel,
   getInitials,
+  isListingSaved,
+  toggleSavedListing,
 } from "@/lib/utils"
 import { toast } from "@/components/ui/toaster"
 
@@ -41,7 +43,7 @@ export default function ListingDetailClient({ listing }: ListingDetailClientProp
   const router = useRouter()
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [isFav, setIsFav] = useState(listing.isFavourited || false)
+  const [isFav, setIsFav] = useState(listing.isFavourited || isListingSaved(listing.id))
   const [favLoading, setFavLoading] = useState(false)
   const [showOfferModal, setShowOfferModal] = useState(false)
   const [offerAmount, setOfferAmount] = useState("")
@@ -75,9 +77,16 @@ export default function ListingDetailClient({ listing }: ListingDetailClientProp
 
   async function toggleFavourite() {
     if (!session) {
-      router.push("/login")
+      const nextValue = toggleSavedListing(listing.id)
+      setIsFav(nextValue)
+      toast({
+        title: nextValue ? "Saved!" : "Removed",
+        description: nextValue ? "Saved for later." : "Removed from your saved items.",
+        variant: "success",
+      })
       return
     }
+
     setFavLoading(true)
     try {
       const res = await fetch(`/api/listings/${listing.id}/favourite`, { method: "POST" })
@@ -85,7 +94,23 @@ export default function ListingDetailClient({ listing }: ListingDetailClientProp
       if (data.success) {
         setIsFav(data.data.isFavourited)
         toast({ title: data.data.isFavourited ? "Saved!" : "Removed", variant: "success" })
+      } else {
+        const nextValue = toggleSavedListing(listing.id)
+        setIsFav(nextValue)
+        toast({
+          title: nextValue ? "Saved locally" : "Removed locally",
+          description: "The app is using local saved items until the database is connected.",
+          variant: "warning",
+        })
       }
+    } catch {
+      const nextValue = toggleSavedListing(listing.id)
+      setIsFav(nextValue)
+      toast({
+        title: nextValue ? "Saved locally" : "Removed locally",
+        description: "The app is using local saved items until the database is connected.",
+        variant: "warning",
+      })
     } finally {
       setFavLoading(false)
     }
