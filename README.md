@@ -1,250 +1,153 @@
-# Student Marketplace (Ghana Tertiary Institutions)
+# UniPlug Ghana
 
-A production-ready peer-to-peer campus marketplace designed specifically for university and tertiary students in Ghana. The platform allows students to buy, sell, exchange/swap, lend, and borrow textbooks, electronics, dorm essentials, and academic supplies within their university communities.
+A campus marketplace for students at Ghanaian tertiary institutions. Students can discover, buy, sell, exchange, lend, and borrow items within their campus communities.
 
----
+## Features
 
-## 🚀 Key Highlights & Implemented Features
+- Browse listings by keyword, category, institution, campus, condition, type, and price.
+- Create listings for items for sale, exchanges, lending, and giveaways.
+- Save listings in the browser for quick access.
+- Student accounts, profiles, messaging, offers, borrowing requests, reviews, and reports.
+- Admin dashboard and moderation-oriented API routes.
+- Demo data fallback for browsing when the database is unavailable.
 
-### 1. Multi-Mode Commerce
-- **Buy & Sell**: Direct purchase of items with fixed or negotiable pricing in Ghana Cedis (GH₵).
-- **Exchange / Swap**: Trade textbooks or gadgets with or without cash adjustment.
-- **Lend & Borrow**: Daily/weekly rental rates, security deposits, lending terms, return dates, and loan tracking.
-- **Free Giveaways**: Senior students donating Level 100 books and dorm gear to freshers.
+> **Integration status:** The project uses Prisma with PostgreSQL and can use a Supabase-hosted database. Supabase Storage helpers are also present. Configure real credentials before expecting persistent database or image-upload behavior. Paystack and Resend environment variables are optional integrations; configure and test them before using them in production.
 
-### 2. Campus & Academic Localization
-- **10+ Pre-Configured Ghanaian Tertiary Institutions**:
-  - University of Ghana (UG - Legon, Korle-Bu, City Campus)
-  - Kwame Nkrumah University of Science and Technology (KNUST - Kumasi)
-  - University of Cape Coast (UCC - Cape Coast)
-  - University of Education, Winneba (UEW)
-  - Ashesi University (Berekuso)
-  - Ghana Institute of Management and Public Administration (GIMPA)
-  - University for Development Studies (UDS)
-  - Accra Technical University (ATU)
-  - Takoradi Technical University (TTU)
-- **Campus Filters**: Browse items specifically available at your campus, hall of residence, or hostel.
+## Technology
 
-### 3. Student Trust & Safety System
-- **Tiered Verification**:
-  - `UNVERIFIED`: Fresh signups
-  - `EMAIL_VERIFIED`: Official student email domain verification (e.g. `@st.ug.edu.gh`, `@st.knust.edu.gh`)
-  - `STUDENT_VERIFIED`: Student ID card verification
-  - `FULLY_VERIFIED`: Complete identity verification
-- **Ratings & Reviews**: 1–5 star ratings and reviews following completed campus transactions.
-- **Reporting & Moderation**: Report suspicious listings or scams directly to administrators.
+- Next.js 16 App Router, React 19, and TypeScript
+- Tailwind CSS 4
+- PostgreSQL via Prisma ORM (Supabase is supported)
+- NextAuth credentials authentication
+- Supabase Storage client
+- Paystack and Resend configuration points
 
-### 4. Real-Time Communication & Price Negotiation
-- **In-App Messaging**: Instant chat tied to specific listings.
-- **Price Offers & Counter-Offers**: Submit price bids, accept, reject, or counter-offer with custom amounts.
-- **Transaction Tracker**: Order lifecycle tracking from agreement to physical campus meetup.
+## Requirements
 
-### 5. Administration & Moderation
-- **Admin Dashboard** (`/admin`): Metrics on users, active listings, reported items, and safety actions.
+- Node.js 20 or later
+- npm
+- A PostgreSQL database for persistent data (optional for exploring the demo)
 
----
+## Getting started
 
-## 🛠️ Technology Stack
+1. Install dependencies:
 
-- **Framework**: Next.js 16 (App Router, Turbopack, Server Actions)
-- **Language**: TypeScript & React 19
-- **Styling**: Tailwind CSS & Modern Design Tokens (Green & Gold Ghana Palette)
-- **Database & ORM**: PostgreSQL (Supabase) + Prisma ORM
-- **Authentication**: NextAuth.js v5 (JWT Strategy, Credentials Provider)
-- **Icons**: Lucide React
-- **Payments / MoMo**: Paystack integration architecture
-- **Transactional Emails**: Resend API integration
-
----
-
-## 📁 Project Structure
-
-```
-student-marketplace/
-├── prisma/
-│   ├── schema.prisma         # Full database schema (Users, Listings, Offers, etc.)
-│   └── seed.ts               # Database seed script with Ghanaian universities & items
-├── public/                   # Static assets & icons
-├── src/
-│   ├── app/
-│   │   ├── (auth)/           # Auth group
-│   │   ├── admin/            # Administrative dashboard
-│   │   ├── api/              # API Route handlers
-│   │   │   ├── admin/        # Admin management endpoints
-│   │   │   ├── auth/         # NextAuth route handlers & registration
-│   │   │   ├── borrowings/   # Loan and rental endpoints
-│   │   │   ├── categories/   # Category & subcategory endpoints
-│   │   │   ├── conversations/# Messaging conversation endpoints
-│   │   │   ├── institutions/ # Ghanaian universities & campuses
-│   │   │   ├── listings/     # Listings CRUD, search, and filtering
-│   │   │   ├── messages/     # In-app chat messages
-│   │   │   ├── notifications/# User notifications
-│   │   │   ├── offers/       # Price negotiation offers
-│   │   │   ├── profile/      # User profile updates
-│   │   │   ├── reports/      # Safety reports
-│   │   │   ├── reviews/      # Peer ratings and reviews
-│   │   │   ├── upload/       # File upload handler
-│   │   │   └── users/        # User management & passwords
-│   │   ├── borrowings/       # Borrowing & lending manager page
-│   │   ├── dashboard/        # Student dashboard with stats
-│   │   ├── favourites/       # Wishlist / saved items page
-│   │   ├── listing/[slug]/   # Detailed product view & offer modal
-│   │   ├── login/            # Sign in page
-│   │   ├── marketplace/      # Search, filter, and discover products
-│   │   ├── messages/         # Real-time chat interface
-│   │   ├── my-listings/      # Manage your listings (Active, Sold, Reserved)
-│   │   ├── notifications/    # Notifications center
-│   │   ├── offers/           # Price offer negotiation manager
-│   │   ├── profile/          # Profile redirect handler
-│   │   ├── register/         # Student signup with university selection
-│   │   ├── sell/             # Multi-step listing creation wizard
-│   │   ├── settings/         # Profile edit & Student ID verification upload
-│   │   ├── transactions/     # Purchase history & peer review submission
-│   │   ├── user/[userId]/    # Public student profile with badges & feedback
-│   │   ├── globals.css       # Tailwind CSS & design system tokens
-│   │   ├── layout.tsx        # Root layout with Auth & Toast providers
-│   │   └── page.tsx          # Homepage with featured items, search & stats
-│   ├── components/
-│   │   ├── layout/           # Sticky Navbar & Footer
-│   │   ├── marketplace/      # ListingCard & Product components
-│   │   ├── ui/               # Toast notifications & UI elements
-│   │   └── providers.tsx     # SessionProvider & Global state
-│   ├── lib/
-│   │   ├── api-response.ts   # Standardized JSON response utilities
-│   │   ├── auth.ts           # NextAuth configuration & callbacks
-│   │   ├── helpers.ts        # Session & authorization helpers
-│   │   ├── mock-data.ts      # Offline fallback demo data
-│   │   ├── prisma.ts         # Prisma client singleton
-│   │   └── utils.ts          # Ghana Cedis (GH₵) & date formatters
-│   └── proxy.ts              # Route protection & role-based middleware
-├── .env.example              # Environment variables template
-├── .env.local                # Local environment configuration
-├── next.config.ts            # Next.js configuration & image domains
-├── package.json              # Dependencies and run scripts
-└── tsconfig.json             # TypeScript configuration
-```
-
----
-
-## ⚙️ Setup & Local Installation
-
-### 1. Prerequisites
-- **Node.js**: v18.17+ or v20+
-- **npm** or **pnpm**
-- (Optional) PostgreSQL database instance or Supabase project
-
-### 2. Clone and Install Dependencies
-```bash
-cd student-marketplace
-npm install
-```
-
-### 3. Configure Environment Variables
-Copy `.env.example` to `.env.local`:
-```bash
-cp .env.example .env.local
-```
-
-Configure your secrets:
-```env
-# App URL
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="Student Marketplace"
-
-# Database (Supabase or Local PostgreSQL)
-DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres"
-
-# NextAuth.js Secret
-AUTH_SECRET="generate-a-secure-random-32-char-string"
-NEXTAUTH_URL="http://localhost:3000"
-
-# Admin Seed
-ADMIN_EMAIL="admin@studentmarketplace.gh"
-ADMIN_PASSWORD="Admin@123456"
-
-# Third-Party Integrations (Optional for local testing)
-RESEND_API_KEY="re_your_api_key"
-NEXT_PUBLIC_SUPABASE_URL="https://[PROJECT_REF].supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
-PAYSTACK_SECRET_KEY="sk_test_your_key"
-NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY="pk_test_your_key"
-```
-
-> **Note on Offline Testing**: The application includes a built-in fallback system (`src/lib/mock-data.ts`). Even if your database credentials are not yet configured, all public pages, browse views, filters, and search functions run smoothly for demonstration and review!
-
-### 4. Database Setup & Seeding
-Generate Prisma Client and push the schema to your database:
-```bash
-# Generate Prisma Client
-npm run db:generate
-
-# Push schema to database
-npm run db:push
-
-# Seed Ghanaian institutions, categories, student accounts, and listings
-npm run db:seed
-```
-
-### 5. Run Development Server
-```bash
-npm run dev
-```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
-
----
-
-## 👥 Demo Accounts
-
-The database seed provides pre-configured student and admin accounts:
-
-| Role | Email | Password | Details |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@studentmarketplace.gh` | `Admin@123456` | Full platform administration |
-| **Student (UG)** | `kwame.mensah@st.ug.edu.gh` | `Student@123` | University of Ghana (Legon) |
-| **Student (UG)** | `ama.asante@st.ug.edu.gh` | `Student@123` | University of Ghana |
-| **Student (KNUST)** | `kofi.boateng@st.knust.edu.gh` | `Student@123` | KNUST (Kumasi) |
-| **Student (KNUST)** | `abena.osei@st.knust.edu.gh` | `Student@123` | KNUST College of Health Sciences |
-| **Student (Ashesi)** | `yaw.darko@ashesi.edu.gh` | `Student@123` | Ashesi University |
-
----
-
-## 🧪 Testing Guide
-
-1. **Marketplace Discovery**:
-   - Navigate to `/marketplace`.
-   - Filter by University (e.g. *University of Ghana* or *KNUST*).
-   - Filter by Category (e.g. *Textbooks*, *Electronics*).
-   - Test text search (e.g., search for "Calculus" or "Casio").
-2. **View Listing & Offers**:
-   - Click on any product (e.g., `/listing/calculus-for-engineers-stroud-7th-edition-ug001`).
-   - Check pricing, seller rating, and campus meeting location.
-3. **Authentication & Student Signup**:
-   - Navigate to `/register`.
-   - Register a new account choosing your Ghanaian institution and campus.
-4. **Post an Item**:
-   - Log in and visit `/sell`.
-   - Select Listing Type: *Sell*, *Exchange*, *Lend*, or *Giveaway*.
-5. **Manage Listings & Offers**:
-   - Visit `/my-listings` to toggle items between *Active*, *Reserved*, and *Sold*.
-   - Visit `/offers` to inspect received price bids, accept them, or send counter-offers.
-6. **Student Verification**:
-   - Visit `/settings` to verify your student email domain or upload a photo of your student ID card.
-
----
-
-## 🚢 Production Deployment (Vercel + Supabase)
-
-1. **Database**: Create a project on [Supabase](https://supabase.com). Copy the connection pooler URL into `DATABASE_URL` and direct URL into `DIRECT_URL`.
-2. **Deploy to Vercel**:
-   - Import the GitHub repository into Vercel.
-   - Add all environment variables from `.env.local`.
-   - Set Build Command: `prisma generate && next build`.
-3. **Run Migrations on Production**:
    ```bash
-   npx prisma db push
-   npx tsx prisma/seed.ts
+   npm install
    ```
-#   U n i P l u g - G h a n a  
- #   U n i P l u g - G h a n a  
- 
+
+2. Create a local environment file:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   On Windows PowerShell, use:
+
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+
+3. Configure the environment variables described below.
+
+4. Generate the Prisma client:
+
+   ```bash
+   npm run db:generate
+   ```
+
+5. For a connected database, apply the Prisma schema and optionally seed demo records:
+
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
+
+6. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000).
+
+### Running without a database
+
+The homepage, marketplace listing API, categories, and institutions include demo-data fallbacks for browsing without a configured database. Database-backed account actions, listing management, messaging, and transactions require a reachable PostgreSQL database. Saved listings can be stored locally in the browser.
+
+## Environment variables
+
+Copy `.env.example` to `.env.local` and set only the values for integrations you intend to use.
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_APP_URL` | Public base URL of the app, such as `http://localhost:3000`. |
+| `NEXT_PUBLIC_APP_NAME` | Display name for the app. |
+| `DATABASE_URL` | PostgreSQL connection string. For Supabase, use the connection pooler URL recommended for the runtime. |
+| `DIRECT_URL` | Direct PostgreSQL connection string used by Prisma for schema operations. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL, used by Supabase clients and Storage. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable/anon key. This is intended for browser use; secure access with Supabase policies. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase service role key for privileged Storage operations. Never expose or commit it. |
+| `AUTH_SECRET` | A unique, strong secret for NextAuth. |
+| `NEXTAUTH_URL` | Canonical app URL used by authentication, such as `http://localhost:3000`. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Credentials used by the seed script for the initial admin account. Change the password after setup. |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Optional email delivery configuration. |
+| `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | Optional Paystack configuration. Do not use test credentials for real transactions. |
+| `MAX_FILE_SIZE` | Maximum upload size in bytes where supported. |
+
+### Supabase database setup
+
+1. Create a project in [Supabase](https://supabase.com/).
+2. In the project settings, obtain the PostgreSQL connection strings and API credentials.
+3. Set `DATABASE_URL` to the pooler connection string and `DIRECT_URL` to the direct connection string. Use the correct password and connection options provided by Supabase.
+4. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+5. Set `SUPABASE_SERVICE_ROLE_KEY` only in server-side environment configuration. Never prefix it with `NEXT_PUBLIC_`.
+6. Apply the schema with `npm run db:push`, then seed optional demo records with `npm run db:seed`.
+
+For image uploads, create a Supabase Storage bucket named `listings` and configure its access policies intentionally. Server-side uploads use the service role key, which must remain private.
+
+## Available commands
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the development server. |
+| `npm run build` | Generate Prisma Client and create a production build. |
+| `npm run start` | Serve the production build. |
+| `npm run lint` | Run ESLint. |
+| `npm run db:generate` | Generate Prisma Client. |
+| `npm run db:push` | Apply the Prisma schema to the configured database. |
+| `npm run db:migrate` | Create and apply a Prisma development migration. |
+| `npm run db:seed` | Seed demo institutions, categories, users, and listings. |
+| `npm run db:reset` | Reset the configured database and reseed it. **This deletes database data.** |
+| `npm run db:studio` | Open Prisma Studio. |
+
+## Project layout
+
+```text
+prisma/
+  schema.prisma       Database schema
+  seed.ts             Demo and initial data seed
+public/               Static assets
+src/
+  app/                Pages and API routes
+  components/         Shared UI and layout components
+  lib/                Auth, Prisma, Supabase, validation, and utilities
+  types/              Shared TypeScript declarations
+  proxy.ts            Route protection
+```
+
+## Demo accounts
+
+The seed script defines demo student and administrator accounts. Their exact credentials are in [`prisma/seed.ts`](./prisma/seed.ts). Seed accounts are for local development only; replace default credentials and remove or disable demo accounts before production use.
+
+## Production notes
+
+- Set strong, unique production values for `AUTH_SECRET` and administrator credentials.
+- Configure all production environment variables in the hosting provider; do not commit `.env.local`.
+- Use database migrations and backups as part of deployment and operations.
+- Review authentication, authorization, upload limits, Supabase Storage policies, and moderation workflows before opening the service to users.
+- Verify payment and email integrations in their respective test environments before enabling them in production.
+
+## License
+
+No license is currently specified. Contact the repository owner before reusing or distributing this project.
