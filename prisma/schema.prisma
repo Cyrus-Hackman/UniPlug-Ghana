@@ -175,6 +175,7 @@ model User {
   lastSeenAt        DateTime?
 
   profile           Profile?
+  emailVerificationCode EmailVerificationCode?
   listings          Listing[]
   sentMessages      Message[]          @relation("SentMessages")
   conversations     ConversationParticipant[]
@@ -734,6 +735,20 @@ model VerificationRequest {
   @@index([userId])
   @@index([status])
   @@map("verification_requests")
+}
+
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("email_verification_codes")
 }
 
 // ============================================================

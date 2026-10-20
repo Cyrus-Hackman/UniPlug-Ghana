@@ -315,9 +315,10 @@ async function main() {
 
   const adminUser = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: { emailVerified: new Date() },
     create: {
       email: adminEmail,
+      emailVerified: new Date(),
       passwordHash: adminPasswordHash,
       role: "ADMIN",
       status: "ACTIVE",
@@ -395,9 +396,10 @@ async function main() {
   for (const student of studentData) {
     const user = await prisma.user.upsert({
       where: { email: student.email },
-      update: {},
+      update: { emailVerified: new Date() },
       create: {
         email: student.email,
+        emailVerified: new Date(),
         passwordHash: studentPassword,
         role: "STUDENT",
         status: "ACTIVE",

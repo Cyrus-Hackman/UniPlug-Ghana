@@ -11,7 +11,7 @@ A campus marketplace for students at Ghanaian tertiary institutions. Students ca
 - Admin dashboard and moderation-oriented API routes.
 - Demo data fallback for browsing when the database is unavailable.
 
-> **Integration status:** The project uses Prisma with PostgreSQL and can use a Supabase-hosted database. Supabase Storage helpers are also present. Configure real credentials before expecting persistent database or image-upload behavior. Paystack and Resend environment variables are optional integrations; configure and test them before using them in production.
+> **Integration status:** The project uses Prisma with PostgreSQL and can use a Supabase-hosted database. Supabase Storage helpers are also present. Configure real credentials before expecting persistent database or image-upload behavior. Resend is required to deliver registration verification codes. Paystack configuration is optional and should be tested before production use.
 
 ## Technology
 
@@ -91,7 +91,7 @@ Copy `.env.example` to `.env.local` and set only the values for integrations you
 | `AUTH_SECRET` | A unique, strong secret for NextAuth. |
 | `NEXTAUTH_URL` | Canonical app URL used by authentication, such as `http://localhost:3000`. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Credentials used by the seed script for the initial admin account. Change the password after setup. |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Optional email delivery configuration. |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Required for email verification during signup. Verify the sender domain with Resend so messages can be delivered to users. |
 | `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | Optional Paystack configuration. Do not use test credentials for real transactions. |
 | `MAX_FILE_SIZE` | Maximum upload size in bytes where supported. |
 
@@ -105,6 +105,10 @@ Copy `.env.example` to `.env.local` and set only the values for integrations you
 6. Apply the schema with `npm run db:push`, then seed optional demo records with `npm run db:seed`.
 
 For image uploads, create a Supabase Storage bucket named `listings` and configure its access policies intentionally. Server-side uploads use the service role key, which must remain private.
+
+### Email verification setup
+
+Registration sends a six-digit code through Resend. Set `RESEND_API_KEY` and `EMAIL_FROM` in `.env.local` (and in your deployment environment), and verify the sender domain in Resend. New accounts cannot sign in until the code is verified. After changing the Prisma schema, run `npm run db:push` to create the email verification table.
 
 ## Available commands
 

@@ -9,9 +9,13 @@ import {
   checkRateLimit,
   rateLimitResponse,
 } from "@/lib/api-response"
-import { generateUniqueSlug, slugify } from "@/lib/utils"
 import bcrypt from "bcryptjs"
-import { v4 as uuidv4 } from "uuid"
+import {
+  EmailDeliveryConfigurationError,
+  EmailDeliveryError,
+  VerificationCooldownError,
+  issueEmailVerificationCode,
+} from "@/lib/email-verification"
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,32 +29,55 @@ export async function POST(req: NextRequest) {
     const result = registerSchema.safeParse(body)
 
     if (!result.success) {
-      return validationErrorResponse(result.error.flatten().fieldErrors as any)
+      const fieldErrors: Record<string, string[]> = {}
+      for (const [field, messages] of Object.entries(result.error.flatten().fieldErrors)) {
+        if (messages) fieldErrors[field] = messages
+      }
+      return validationErrorResponse(fieldErrors)
     }
 
     const { fullName, email, password, phone, institutionId, campusId, studentId, level, programme } =
       result.data
 
-    // Check if email already exists
+    const normalizedEmail = email.toLowerCase()
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     })
 
     if (existingUser) {
+      if (!existingUser.emailVerified && existingUser.status !== "BANNED" && existingUser.status !== "SUSPENDED") {
+        try {
+          await issueEmailVerificationCode(existingUser.id, normalizedEmail)
+          return successResponse(
+            { userId: existingUser.id, verificationRequired: true },
+            "A new verification code has been sent to your email."
+          )
+        } catch (error) {
+          if (error instanceof VerificationCooldownError) {
+            return successResponse(
+              { userId: existingUser.id, verificationRequired: true },
+              "A verification code was recently sent. Check your inbox or request another one in a minute."
+            )
+          }
+          if (error instanceof EmailDeliveryConfigurationError) return errorResponse(error.message, 503)
+          if (error instanceof EmailDeliveryError) return errorResponse(error.message, 503)
+          throw error
+        }
+      }
       return errorResponse("An account with this email already exists.", 409)
     }
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // Create user and profile in a transaction
+    // Create a pending account; login remains disabled until its email is verified.
     const user = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          email: email.toLowerCase(),
+          email: normalizedEmail,
           passwordHash,
           role: "STUDENT",
-          status: "ACTIVE",
+          status: "PENDING_VERIFICATION",
           verificationStatus: "UNVERIFIED",
         },
       })
@@ -71,9 +98,19 @@ export async function POST(req: NextRequest) {
       return newUser
     })
 
+    try {
+      await issueEmailVerificationCode(user.id, normalizedEmail)
+    } catch (error) {
+      await prisma.user.delete({ where: { id: user.id } })
+      if (error instanceof VerificationCooldownError) return errorResponse(error.message, 429)
+      if (error instanceof EmailDeliveryConfigurationError) return errorResponse(error.message, 503)
+      if (error instanceof EmailDeliveryError) return errorResponse(error.message, 503)
+      throw error
+    }
+
     return successResponse(
-      { userId: user.id },
-      "Account created successfully. Welcome to Student Marketplace!",
+      { userId: user.id, verificationRequired: true },
+      "We sent a verification code to your email. Enter it to activate your account.",
       undefined,
       201
     )

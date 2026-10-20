@@ -38,6 +38,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const isValid = await bcrypt.compare(password, user.passwordHash)
           if (!isValid) return null
 
+          if (!user.emailVerified) return null
+
           if (user.status === "SUSPENDED") {
             throw new Error("Your account has been suspended. Please contact support.")
           }
@@ -72,10 +74,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as any).role
-        token.status = (user as any).status
-        token.verificationStatus = (user as any).verificationStatus
-        token.avatarUrl = (user as any).avatarUrl
+        token.role = user.role
+        token.status = user.status
+        token.verificationStatus = user.verificationStatus
+        token.avatarUrl = user.avatarUrl
       }
       return token
     },
@@ -88,11 +90,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.avatarUrl = token.avatarUrl as string | null
       }
       return session
-    },
-  },
-  events: {
-    async signIn({ user }) {
-      // Log sign-in activity if needed
     },
   },
 })

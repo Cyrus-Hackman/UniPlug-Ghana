@@ -12,6 +12,7 @@ import {
   CheckCircle,
   ChevronRight,
   ChevronLeft,
+  Mail,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { STUDENT_LEVELS } from "@/lib/utils"
@@ -28,8 +29,13 @@ export default function RegisterPage() {
 
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [verifyLoading, setVerifyLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
+  const [notice, setNotice] = useState("")
+  const [verificationSent, setVerificationSent] = useState(false)
+  const [verified, setVerified] = useState(false)
+  const [verificationCode, setVerificationCode] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [institutions, setInstitutions] = useState<Institution[]>([])
@@ -122,8 +128,7 @@ export default function RegisterPage() {
           }
         }
       } else {
-        setSuccess(true)
-        setTimeout(() => router.push("/login"), 2000)
+        setVerificationSent(true)
       }
     } catch {
       setError("Something went wrong. Please try again.")
@@ -132,18 +137,145 @@ export default function RegisterPage() {
     }
   }
 
-  if (success) {
+  async function handleVerifyEmail(e: React.FormEvent) {
+    e.preventDefault()
+    setError("")
+    setNotice("")
+    setVerifyLoading(true)
+
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          code: verificationCode.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setError(data.error || "That code could not be verified. Please try again.")
+        return
+      }
+      setVerified(true)
+    } catch {
+      setError("Could not verify the code. Please try again.")
+    } finally {
+      setVerifyLoading(false)
+    }
+  }
+
+  async function handleResendCode() {
+    setError("")
+    setNotice("")
+    setResendLoading(true)
+
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email.trim().toLowerCase() }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setError(data.error || "Could not resend the code. Please try again.")
+      } else {
+        setNotice(data.message || "If this address has an unverified account, a code will be sent.")
+      }
+    } catch {
+      setError("Could not resend the code. Please try again.")
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
+  if (verified) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center animate-fade-in">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Created! 🎉</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Email verified!</h2>
           <p className="text-gray-500 mb-4">
-            Welcome to Student Marketplace! You can now sign in.
+            Your account is ready. Sign in to start using UniPlug Ghana.
           </p>
-          <p className="text-sm text-gray-400">Redirecting to sign in...</p>
+          <button onClick={() => router.push("/login")} className="btn-primary btn-md">
+            Continue to sign in
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <Link href="/" className="flex items-center gap-2 mb-8">
+            <div className="w-9 h-9 rounded-xl bg-green-800 flex items-center justify-center shadow-md">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl text-gray-900">
+              Student<span className="text-green-800">Market</span>
+            </span>
+          </Link>
+
+          <div className="w-14 h-14 rounded-2xl bg-green-100 text-green-800 flex items-center justify-center mb-5">
+            <Mail className="w-7 h-7" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
+          <p className="text-gray-500 mb-6">
+            We sent a six-digit verification code to <strong className="text-gray-800">{form.email}</strong>.
+            Enter it below to activate your account. The code expires in 10 minutes.
+          </p>
+
+          {error && (
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              {error}
+            </div>
+          )}
+          {notice && (
+            <div className="flex items-start gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 mb-6 text-sm">
+              <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              {notice}
+            </div>
+          )}
+
+          <form onSubmit={handleVerifyEmail} className="space-y-4">
+            <div>
+              <label htmlFor="verificationCode" className="label">Verification code</label>
+              <input
+                id="verificationCode"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                pattern="[0-9]{6}"
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
+                className="input text-center text-2xl font-bold tracking-[0.4em]"
+                required
+              />
+            </div>
+            <button type="submit" disabled={verifyLoading || verificationCode.length !== 6} className="btn-primary btn-lg w-full">
+              {verifyLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</> : "Verify email"}
+            </button>
+          </form>
+
+          <div className="flex items-center justify-between mt-5 text-sm">
+            <button
+              type="button"
+              onClick={handleResendCode}
+              disabled={resendLoading}
+              className="text-green-800 font-semibold hover:underline disabled:opacity-50"
+            >
+              {resendLoading ? "Sending..." : "Resend code"}
+            </button>
+            <Link href="/login" className="text-gray-500 hover:text-gray-700">Back to sign in</Link>
+          </div>
         </div>
       </div>
     )

@@ -59,7 +59,9 @@ function LoginForm() {
           </Link>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back!</h1>
-          <p className="text-gray-500 mb-8">Sign in to your account to continue.</p>
+          <p className="text-gray-500 mb-8">
+            Sign in to your account to continue. New accounts must verify their email before signing in.
+          </p>
 
           {error && (
             <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">
@@ -129,7 +131,7 @@ function LoginForm() {
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/register" className="text-green-800 font-semibold hover:underline">
               Create one for free
             </Link>
