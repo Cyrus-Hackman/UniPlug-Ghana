@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js"
+import { isDemoMode } from "@/lib/demo-mode"
 
 // Client-side Supabase client (anon key) - lazy loaded function
 export function getSupabaseClient(): SupabaseClient | null {
@@ -30,7 +31,8 @@ export async function uploadImage(
 ): Promise<{ url: string; path: string } | null> {
   const admin = createSupabaseAdmin()
   if (!admin) {
-    // Fallback when storage credentials are not yet configured in production
+    // Never pretend an upload succeeded unless demo mode is explicitly on
+    if (!isDemoMode()) return null
     return {
       url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
       path,

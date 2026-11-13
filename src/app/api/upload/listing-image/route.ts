@@ -8,6 +8,7 @@ import {
 } from "@/lib/api-response"
 import { getCurrentUserId } from "@/lib/helpers"
 import { createSupabaseAdmin, generateImagePath } from "@/lib/supabase"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
 
@@ -40,6 +41,10 @@ export async function POST(req: NextRequest) {
 
     const admin = createSupabaseAdmin()
     if (!admin) {
+      if (!isDemoMode()) {
+        console.error("Image upload failed: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set")
+        return errorResponse("Image uploads are not available right now. Please try again later.", 503)
+      }
       return successResponse(
         {
           url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
