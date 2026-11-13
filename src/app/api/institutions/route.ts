@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { successResponse, internalErrorResponse } from "@/lib/api-response"
-
 import { MOCK_INSTITUTIONS } from "@/lib/mock-data"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,9 +20,10 @@ export async function GET(req: NextRequest) {
         _count: { select: { listings: { where: { status: "ACTIVE" } } } },
       },
     })
-    if (institutions.length > 0) return successResponse(institutions)
+    return successResponse(institutions)
   } catch (error) {
-    console.warn("Using offline fallback institutions")
+    if (!isDemoMode()) return internalErrorResponse(error)
+    console.warn("DEMO_MODE: database unavailable, serving mock institutions")
+    return successResponse(MOCK_INSTITUTIONS)
   }
-  return successResponse(MOCK_INSTITUTIONS)
 }

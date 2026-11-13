@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-response"
 import { getCurrentUserId } from "@/lib/helpers"
 import { MOCK_LISTINGS } from "@/lib/mock-data"
+import { isDemoMode } from "@/lib/demo-mode"
 
 // GET /api/listings — fetch all listings with filters
 export async function GET(req: NextRequest) {
@@ -151,14 +152,14 @@ export async function GET(req: NextRequest) {
       isFavourited: favouritedIds.has(l.id),
     }))
 
-    if (total > 0) {
-      return successResponse(listingsWithFav, undefined, getPaginationMeta(total, page, limit))
-    }
+    // An empty result is a real answer (e.g. a search with no matches) — never pad it with mock data.
+    return successResponse(listingsWithFav, undefined, getPaginationMeta(total, page, limit))
   } catch (error) {
-    console.warn("Using offline fallback listings")
+    if (!isDemoMode()) return internalErrorResponse(error)
+    console.warn("DEMO_MODE: database unavailable, serving mock listings")
   }
 
-  // Fallback to in-memory mock listings
+  // Demo mode only: in-memory mock listings
   let filtered = [...MOCK_LISTINGS]
   if (q) {
     const qLower = q.toLowerCase()

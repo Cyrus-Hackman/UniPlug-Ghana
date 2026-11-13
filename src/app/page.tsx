@@ -25,6 +25,7 @@ import {
 import { formatGHS } from "@/lib/utils"
 
 import { MOCK_LISTINGS, MOCK_CATEGORIES, MOCK_INSTITUTIONS } from "@/lib/mock-data"
+import { isDemoMode } from "@/lib/demo-mode"
 
 async function getHomeData() {
   try {
@@ -85,14 +86,16 @@ async function getHomeData() {
       ]),
     ])
 
-    if (recentListings.length > 0) {
-      return { recentListings, categories, featuredListings, institutions, stats }
-    }
+    return { recentListings, categories, featuredListings, institutions, stats }
   } catch (error) {
-    // Graceful fallback to demo listings if DB is not yet connected
-    console.warn("Using offline fallback data for homepage:", error instanceof Error ? error.message : error)
+    console.error("Homepage data failed to load:", error instanceof Error ? error.message : error)
+    if (!isDemoMode()) {
+      // Render the page with empty sections rather than inventing listings and stats.
+      return { recentListings: [], categories: [], featuredListings: [], institutions: [], stats: [0, 0, 0, 0] }
+    }
   }
 
+  // Demo mode only
   return {
     recentListings: MOCK_LISTINGS,
     categories: MOCK_CATEGORIES,

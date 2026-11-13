@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { successResponse, internalErrorResponse } from "@/lib/api-response"
-
 import { MOCK_CATEGORIES } from "@/lib/mock-data"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,9 +17,10 @@ export async function GET(req: NextRequest) {
         _count: { select: { listings: { where: { status: "ACTIVE" } } } },
       },
     })
-    if (categories.length > 0) return successResponse(categories)
+    return successResponse(categories)
   } catch (error) {
-    console.warn("Using offline fallback categories")
+    if (!isDemoMode()) return internalErrorResponse(error)
+    console.warn("DEMO_MODE: database unavailable, serving mock categories")
+    return successResponse(MOCK_CATEGORIES)
   }
-  return successResponse(MOCK_CATEGORIES)
 }

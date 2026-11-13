@@ -4,12 +4,12 @@ import { auth } from "@/lib/auth"
 import Navbar from "@/components/layout/navbar"
 import ListingDetailClient from "./listing-detail-client"
 import type { Metadata } from "next"
+import { MOCK_LISTINGS } from "@/lib/mock-data"
+import { isDemoMode } from "@/lib/demo-mode"
 
 interface Props {
   params: Promise<{ slug: string }>
 }
-
-import { MOCK_LISTINGS } from "@/lib/mock-data"
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
@@ -24,10 +24,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     })
   } catch (e) {
-    // fallback
+    if (!isDemoMode()) throw e
   }
 
-  if (!listing) {
+  if (!listing && isDemoMode()) {
     listing = MOCK_LISTINGS.find((l) => l.slug === slug || l.id === slug)
   }
 
@@ -85,8 +85,10 @@ async function getListing(slug: string) {
     })
     if (listing) return listing
   } catch (e) {
-    // Fallback below
+    if (!isDemoMode()) throw e
   }
+
+  if (!isDemoMode()) return null
 
   const mock = MOCK_LISTINGS.find((l) => l.slug === slug || l.id === slug)
   if (mock) {
