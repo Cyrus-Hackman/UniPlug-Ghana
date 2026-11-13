@@ -77,46 +77,11 @@ export default function BorrowingsPage() {
     try {
       const res = await fetch(`/api/borrowings?type=${activeTab}`)
       const data = await res.json()
-      if (data.success && data.data && data.data.length > 0) {
-        setBorrowings(data.data)
-      } else {
-        // Sample demo borrowing loans for campus students
-        setBorrowings([
-          {
-            id: "bor-1",
-            startDate: new Date(Date.now() - 3600000 * 24 * 3).toISOString(),
-            endDate: new Date(Date.now() + 3600000 * 24 * 4).toISOString(),
-            status: "ACTIVE",
-            totalPrice: 25,
-            depositPaid: 50,
-            listing: {
-              id: "list-3",
-              title: "Casio fx-991EX ClassWiz Scientific Calculator",
-              slug: "casio-fx-991ex-classwiz-scientific-calculator-ug003",
-              dailyRate: 5,
-              weeklyRate: 25,
-              deposit: 50,
-              images: [{ url: "https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=600&auto=format&fit=crop&q=80" }],
-            },
-            lender: {
-              id: "user-ama",
-              profile: {
-                fullName: "Ama Asante",
-                averageRating: 5.0,
-              },
-            },
-            borrower: {
-              id: session?.user?.id || "user-current",
-              profile: {
-                fullName: session?.user?.name || "Student Borrower",
-                averageRating: 4.9,
-              },
-            },
-          },
-        ])
-      }
+      if (!res.ok || !data.success) throw new Error(data.error)
+      setBorrowings(data.data ?? [])
     } catch {
       setBorrowings([])
+      toast({ title: "Couldn't load your borrowings", description: "Please refresh the page to try again.", variant: "error" })
     } finally {
       setLoading(false)
     }
@@ -124,14 +89,18 @@ export default function BorrowingsPage() {
 
   const handleReturnConfirm = async (borrowingId: string) => {
     try {
-      await fetch(`/api/borrowings/${borrowingId}/return`, { method: "POST" })
-      toast({ title: "Item marked as returned! Deposit released.", variant: "success" })
+      const res = await fetch(`/api/borrowings/${borrowingId}/return`, { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        toast({ title: "Item marked as returned!", variant: "success" })
+        setBorrowings((prev) =>
+          prev.map((b) => (b.id === borrowingId ? { ...b, status: "RETURNED" } : b))
+        )
+      } else {
+        toast({ title: "Couldn't mark the item as returned", description: data.error || "Please try again.", variant: "error" })
+      }
     } catch {
-      toast({ title: "Item marked as returned (demo)", variant: "success" })
-    } finally {
-      setBorrowings((prev) =>
-        prev.map((b) => (b.id === borrowingId ? { ...b, status: "RETURNED" } : b))
-      )
+      toast({ title: "Couldn't mark the item as returned", description: "Check your connection and try again.", variant: "error" })
     }
   }
 

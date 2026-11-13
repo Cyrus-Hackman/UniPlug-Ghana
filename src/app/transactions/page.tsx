@@ -84,76 +84,11 @@ export default function TransactionsPage() {
     try {
       const res = await fetch(`/api/transactions?type=${activeTab}`)
       const data = await res.json()
-      if (data.success && data.data && data.data.length > 0) {
-        setTransactions(data.data)
-      } else {
-        // Sample demo transactions for Ghanaian student peers
-        setTransactions([
-          {
-            id: "tx-1",
-            type: "PURCHASE",
-            status: "COMPLETED",
-            amount: 85,
-            paymentMethod: "MOBILE_MONEY",
-            notes: "Met at Balme Library entrance, Legon campus. Paid via MTN MoMo.",
-            createdAt: new Date(Date.now() - 3600000 * 24 * 3).toISOString(),
-            completedAt: new Date(Date.now() - 3600000 * 24 * 3 + 3600000).toISOString(),
-            listing: {
-              id: "list-1",
-              title: "Calculus for Engineers - Stroud 7th Edition",
-              slug: "calculus-for-engineers-stroud-7th-edition-ug001",
-              images: [{ url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80" }],
-            },
-            buyer: {
-              id: session?.user?.id || "user-current",
-              profile: {
-                fullName: session?.user?.name || "Student Buyer",
-                averageRating: 5.0,
-              },
-            },
-            seller: {
-              id: "user-kwame",
-              profile: {
-                fullName: "Kwame Mensah",
-                averageRating: 4.9,
-              },
-            },
-            hasReviewed: false,
-          },
-          {
-            id: "tx-2",
-            type: "BORROW",
-            status: "IN_PROGRESS",
-            amount: 25,
-            paymentMethod: "CASH",
-            notes: "Casio fx-991EX rented for exam week. Due back on Friday at Akuafo Hall.",
-            createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(),
-            listing: {
-              id: "list-3",
-              title: "Casio fx-991EX ClassWiz Scientific Calculator",
-              slug: "casio-fx-991ex-classwiz-scientific-calculator-ug003",
-              images: [{ url: "https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=600&auto=format&fit=crop&q=80" }],
-            },
-            buyer: {
-              id: session?.user?.id || "user-current",
-              profile: {
-                fullName: session?.user?.name || "Student Buyer",
-                averageRating: 5.0,
-              },
-            },
-            seller: {
-              id: "user-ama",
-              profile: {
-                fullName: "Ama Asante",
-                averageRating: 5.0,
-              },
-            },
-            hasReviewed: false,
-          },
-        ])
-      }
+      if (!res.ok || !data.success) throw new Error(data.error)
+      setTransactions(data.data ?? [])
     } catch {
       setTransactions([])
+      toast({ title: "Couldn't load your transactions", description: "Please refresh the page to try again.", variant: "error" })
     } finally {
       setLoading(false)
     }
@@ -174,21 +109,22 @@ export default function TransactionsPage() {
           comment,
         }),
       })
-      const data = await res.json()
-      if (data.success) {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
         toast({ title: "Review submitted successfully!", variant: "success" })
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === reviewTransaction.id ? { ...t, hasReviewed: true } : t))
+        )
+        setReviewModalOpen(false)
+        setComment("")
       } else {
-        toast({ title: "Review saved (demo mode)", variant: "success" })
+        // Keep the modal open so the user doesn't lose what they wrote
+        toast({ title: "Couldn't submit your review", description: data.error || "Please try again.", variant: "error" })
       }
     } catch {
-      toast({ title: "Review submitted!", variant: "success" })
+      toast({ title: "Couldn't submit your review", description: "Check your connection and try again.", variant: "error" })
     } finally {
-      setTransactions((prev) =>
-        prev.map((t) => (t.id === reviewTransaction.id ? { ...t, hasReviewed: true } : t))
-      )
       setReviewSubmitting(false)
-      setReviewModalOpen(false)
-      setComment("")
     }
   }
 

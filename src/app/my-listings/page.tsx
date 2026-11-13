@@ -22,7 +22,6 @@ import {
 } from "lucide-react"
 import { formatGHS, formatRelativeDate } from "@/lib/utils"
 import { toast } from "@/components/ui/toaster"
-import { MOCK_LISTINGS } from "@/lib/mock-data"
 
 export default function MyListingsPage() {
   const { data: session, status } = useSession()
@@ -49,14 +48,11 @@ export default function MyListingsPage() {
     try {
       const res = await fetch(`/api/listings?userId=${session?.user?.id || ""}`)
       const data = await res.json()
-      if (data.success && data.data && data.data.length > 0) {
-        setListings(data.data)
-      } else {
-        // Fallback to sample user listings from mock data
-        setListings(MOCK_LISTINGS.slice(0, 3))
-      }
+      if (!res.ok || !data.success) throw new Error(data.error)
+      setListings(data.data ?? [])
     } catch {
-      setListings(MOCK_LISTINGS.slice(0, 3))
+      setListings([])
+      toast({ title: "Couldn't load your listings", description: "Please refresh the page to try again.", variant: "error" })
     } finally {
       setLoading(false)
     }
@@ -70,23 +66,17 @@ export default function MyListingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       })
-      const data = await res.json()
-      if (data.success) {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
         toast({ title: `Listing marked as ${newStatus.toLowerCase()}!`, variant: "success" })
         setListings((prev) =>
           prev.map((l) => (l.id === listingId ? { ...l, status: newStatus } : l))
         )
       } else {
-        toast({ title: "Updated listing status (demo)", variant: "success" })
-        setListings((prev) =>
-          prev.map((l) => (l.id === listingId ? { ...l, status: newStatus } : l))
-        )
+        toast({ title: "Couldn't update the listing", description: data.error || "Please try again.", variant: "error" })
       }
     } catch {
-      toast({ title: "Updated listing status (demo)", variant: "success" })
-      setListings((prev) =>
-        prev.map((l) => (l.id === listingId ? { ...l, status: newStatus } : l))
-      )
+      toast({ title: "Couldn't update the listing", description: "Check your connection and try again.", variant: "error" })
     } finally {
       setUpdatingId(null)
     }
@@ -96,12 +86,16 @@ export default function MyListingsPage() {
     if (!confirm("Are you sure you want to remove this listing?")) return
     setUpdatingId(listingId)
     try {
-      await fetch(`/api/listings/${listingId}`, { method: "DELETE" })
-      setListings((prev) => prev.filter((l) => l.id !== listingId))
-      toast({ title: "Listing deleted successfully", variant: "success" })
+      const res = await fetch(`/api/listings/${listingId}`, { method: "DELETE" })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        setListings((prev) => prev.filter((l) => l.id !== listingId))
+        toast({ title: "Listing deleted successfully", variant: "success" })
+      } else {
+        toast({ title: "Couldn't delete the listing", description: data.error || "Please try again.", variant: "error" })
+      }
     } catch {
-      setListings((prev) => prev.filter((l) => l.id !== listingId))
-      toast({ title: "Listing removed", variant: "success" })
+      toast({ title: "Couldn't delete the listing", description: "Check your connection and try again.", variant: "error" })
     } finally {
       setUpdatingId(null)
     }

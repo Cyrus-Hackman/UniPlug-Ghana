@@ -82,75 +82,11 @@ export default function OffersPage() {
     try {
       const res = await fetch(`/api/offers?type=${activeTab}`)
       const data = await res.json()
-      if (data.success && data.data && data.data.length > 0) {
-        setOffers(data.data)
-      } else {
-        // Sample realistic offers for demonstration
-        setOffers([
-          {
-            id: "off-1",
-            amount: 70,
-            message: "Hi! Can you do GHS 70? I can pick up today at Central Cafeteria.",
-            status: "PENDING",
-            createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-            listing: {
-              id: "list-1",
-              title: "Calculus for Engineers - Stroud 7th Edition",
-              slug: "calculus-for-engineers-stroud-7th-edition-ug001",
-              price: 85,
-              images: [{ url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80" }],
-            },
-            buyer: {
-              id: "user-buyer-1",
-              profile: {
-                fullName: "Kojo Mensah",
-                averageRating: 4.8,
-                ratingCount: 6,
-              },
-            },
-            seller: {
-              id: session?.user?.id || "user-seller",
-              profile: {
-                fullName: session?.user?.name || "Student",
-                averageRating: 5.0,
-                ratingCount: 12,
-              },
-            },
-          },
-          {
-            id: "off-2",
-            amount: 2500,
-            message: "Offering GHS 2,500 cash payment on campus for the laptop.",
-            status: "PENDING",
-            createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-            listing: {
-              id: "list-2",
-              title: "HP Laptop 250 G8 - Core i5, 8GB RAM, 256GB SSD",
-              slug: "hp-laptop-250-g8-core-i5-8gb-ram-ug002",
-              price: 2800,
-              images: [{ url: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80" }],
-            },
-            buyer: {
-              id: "user-buyer-2",
-              profile: {
-                fullName: "Efua Sarpong",
-                averageRating: 5.0,
-                ratingCount: 4,
-              },
-            },
-            seller: {
-              id: session?.user?.id || "user-seller",
-              profile: {
-                fullName: session?.user?.name || "Student",
-                averageRating: 5.0,
-                ratingCount: 12,
-              },
-            },
-          },
-        ])
-      }
+      if (!res.ok || !data.success) throw new Error(data.error)
+      setOffers(data.data ?? [])
     } catch {
       setOffers([])
+      toast({ title: "Couldn't load your offers", description: "Please refresh the page to try again.", variant: "error" })
     } finally {
       setLoading(false)
     }
@@ -164,22 +100,22 @@ export default function OffersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: action, counterAmount: counterValue }),
       })
-      const data = await res.json()
-      if (data.success) {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
         toast({
           title: `Offer ${action === "ACCEPTED" ? "accepted" : action === "COUNTERED" ? "countered" : "rejected"}!`,
           variant: "success",
         })
+        setOffers((prev) =>
+          prev.map((o) => (o.id === offerId ? { ...o, status: action } : o))
+        )
+        setCounteringOfferId(null)
       } else {
-        toast({ title: `Offer marked as ${action.toLowerCase()}!`, variant: "success" })
+        toast({ title: "Couldn't update the offer", description: data.error || "Please try again.", variant: "error" })
       }
     } catch {
-      toast({ title: `Offer marked as ${action.toLowerCase()}!`, variant: "success" })
+      toast({ title: "Couldn't update the offer", description: "Check your connection and try again.", variant: "error" })
     } finally {
-      setOffers((prev) =>
-        prev.map((o) => (o.id === offerId ? { ...o, status: action } : o))
-      )
-      setCounteringOfferId(null)
       setActionLoadingId(null)
     }
   }
