@@ -52,7 +52,6 @@ export default function SettingsPage() {
   // Verification state
   const [studentEmail, setStudentEmail] = useState("")
   const [studentIdFile, setStudentIdFile] = useState<string | null>(null)
-  const [verificationSubmitted, setVerificationSubmitted] = useState(false)
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState("")
@@ -134,7 +133,7 @@ export default function SettingsPage() {
         toast({ title: data.error || "Failed to update profile", variant: "error" })
       }
     } catch {
-      toast({ title: "Profile saved successfully (offline preview)", variant: "success" })
+      toast({ title: "Couldn't save your profile", description: "Check your connection and try again.", variant: "error" })
     } finally {
       setLoading(false)
     }
@@ -157,37 +156,31 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword, newPassword }),
       })
-      const data = await res.json()
-      if (data.success) {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
         toast({ title: "Password changed successfully!", variant: "success" })
         setCurrentPassword("")
         setNewPassword("")
         setConfirmPassword("")
       } else {
-        toast({ title: data.error || "Failed to change password", variant: "error" })
+        toast({ title: data.error || "Your password was not changed. Please try again.", variant: "error" })
       }
     } catch {
-      toast({ title: "Password updated successfully", variant: "success" })
-      setCurrentPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
+      toast({ title: "Your password was not changed", description: "Check your connection and try again.", variant: "error" })
     } finally {
       setLoading(false)
     }
   }
 
+  // There is no backend for student verification yet, so say so rather than
+  // pretending a request was submitted.
   const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      setVerificationSubmitted(true)
-      toast({
-        title: "Verification request submitted!",
-        description: "Your student credentials will be reviewed within 24 hours.",
-        variant: "success",
-      })
-    }, 800)
+    toast({
+      title: "Student ID verification isn't available yet",
+      description: "Nothing was submitted. We'll let you know when this feature launches.",
+      variant: "warning",
+    })
   }
 
   const verificationStatus = (session?.user as any)?.verificationStatus || "UNVERIFIED"
@@ -465,7 +458,11 @@ export default function SettingsPage() {
                               toast({ title: "Please enter a valid Ghanaian tertiary student email (.edu.gh)", variant: "error" })
                               return
                             }
-                            toast({ title: "Verification link sent to your student inbox!", variant: "success" })
+                            toast({
+                              title: "Student email verification isn't available yet",
+                              description: "No email was sent. We'll let you know when this feature launches.",
+                              variant: "warning",
+                            })
                           }}
                           className="btn-secondary btn-sm w-full text-xs"
                         >
@@ -508,7 +505,7 @@ export default function SettingsPage() {
                             <button
                               type="button"
                               onClick={handleVerificationSubmit}
-                              disabled={loading || verificationSubmitted}
+                              disabled={loading}
                               className="btn-primary btn-sm text-[11px] h-7 px-3"
                             >
                               Submit for Review
