@@ -133,11 +133,13 @@ export default async function ListingPage({ params }: Props) {
     },
   }
 
-  // Increment views server-side
-  await prisma.listing.update({
-    where: { id: listing.id },
-    data: { views: { increment: 1 } },
-  }).catch(() => {})
+  // Count views from other people only
+  if (!isSeller) {
+    await prisma.listing.update({
+      where: { id: listing.id },
+      data: { views: { increment: 1 } },
+    }).catch(() => {})
+  }
 
   return (
     <>
