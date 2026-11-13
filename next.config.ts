@@ -1,14 +1,10 @@
 import type { NextConfig } from "next";
 
+// Do not add an `env` block here: values in `env` are inlined into the bundle,
+// which would ship server secrets (e.g. SUPABASE_SERVICE_ROLE_KEY) to browsers.
+// NEXT_PUBLIC_* variables are exposed to the client automatically; everything
+// else stays server-only when read from process.env.
 const nextConfig: NextConfig = {
-  env: {
-    NEXT_PUBLIC_SUPABASE_URL:
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-project.supabase.co",
-    NEXT_PUBLIC_SUPABASE_ANON_KEY:
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key",
-    SUPABASE_SERVICE_ROLE_KEY:
-      process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-key",
-  },
   images: {
     remotePatterns: [
       {
