@@ -137,10 +137,14 @@ export default function ListingDetailClient({ listing }: ListingDetailClientProp
           initialMessage: messageText || `Hi, I'm interested in your listing "${listing.title}". Is it still available?`,
         }),
       })
-      const data = await res.json()
-      if (data.success) {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
         router.push(`/messages/${data.data.conversationId}`)
+      } else {
+        toast({ title: "Couldn't start the conversation", description: data.error || data.message || "Please try again.", variant: "error" })
       }
+    } catch {
+      toast({ title: "Couldn't start the conversation", description: "Check your connection and try again.", variant: "error" })
     } finally {
       setMessageLoading(false)
     }
@@ -184,11 +188,15 @@ export default function ListingDetailClient({ listing }: ListingDetailClientProp
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ listingId: listing.id, reason: reportReason, description: reportDesc }),
       })
-      const data = await res.json()
-      if (data.success) {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
         toast({ title: "Report submitted", description: "We will review this listing.", variant: "success" })
         setShowReportModal(false)
+      } else {
+        toast({ title: "Couldn't submit your report", description: data.error || "Please try again.", variant: "error" })
       }
+    } catch {
+      toast({ title: "Couldn't submit your report", description: "Check your connection and try again.", variant: "error" })
     } finally {
       setReportLoading(false)
     }
