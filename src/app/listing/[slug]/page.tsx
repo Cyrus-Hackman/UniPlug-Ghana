@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/lib/auth"
 import Navbar from "@/components/layout/navbar"
 import ListingDetailClient from "./listing-detail-client"
 import type { Metadata } from "next"
@@ -116,6 +117,22 @@ export default async function ListingPage({ params }: Props) {
 
   if (!listing) notFound()
 
+  const session = await auth()
+  const isSeller = session?.user?.id === listing.seller.id
+
+  // Everything passed to a client component is serialized into the page
+  // payload, so strip the phone number here unless the seller made it public.
+  const profile = listing.seller.profile
+  const safeListing = {
+    ...listing,
+    seller: {
+      ...listing.seller,
+      profile: profile
+        ? { ...profile, phone: profile.phoneVisible || isSeller ? profile.phone : null }
+        : null,
+    },
+  }
+
   // Increment views server-side
   await prisma.listing.update({
     where: { id: listing.id },
@@ -125,7 +142,7 @@ export default async function ListingPage({ params }: Props) {
   return (
     <>
       <Navbar />
-      <ListingDetailClient listing={listing as any} />
+      <ListingDetailClient listing={safeListing} />
     </>
   )
 }
