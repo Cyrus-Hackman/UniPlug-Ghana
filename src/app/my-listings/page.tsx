@@ -46,7 +46,8 @@ export default function MyListingsPage() {
   const fetchUserListings = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/listings?userId=${session?.user?.id || ""}`)
+      // mine=true includes reserved/sold items, not just active ones
+      const res = await fetch("/api/listings?mine=true&limit=50")
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error)
       setListings(data.data ?? [])

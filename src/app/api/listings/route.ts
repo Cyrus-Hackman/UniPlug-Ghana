@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import {
   successResponse,
   errorResponse,
+  unauthorizedResponse,
   internalErrorResponse,
   getPaginationParams,
   getPaginationMeta,
@@ -30,14 +31,18 @@ export async function GET(req: NextRequest) {
   const sortBy = searchParams.get("sortBy") || "newest"
   const featured = searchParams.get("featured") === "true"
   const userId = searchParams.get("userId") || ""
+  // mine=true: the seller's own dashboard view (My Listings)
+  const mine = searchParams.get("mine") === "true"
 
   try {
+    const currentUserId = await getCurrentUserId()
+    if (mine && !currentUserId) return unauthorizedResponse()
 
-    // Build where clause
-    const where: any = {
-      status: "ACTIVE",
-      deletedAt: null,
-    }
+    // Public browsing only shows active listings. The owner's view also needs
+    // reserved, sold, borrowed etc. so they can manage them, but never deleted ones.
+    const where: any = mine
+      ? { sellerId: currentUserId, deletedAt: null }
+      : { status: "ACTIVE", deletedAt: null }
 
     if (q) {
       where.OR = [
@@ -81,7 +86,8 @@ export async function GET(req: NextRequest) {
       where.isFeatured = true
     }
 
-    if (userId) {
+    // Ignored with mine=true, so it can't be used to see someone else's non-active listings
+    if (userId && !mine) {
       where.sellerId = userId
     }
 
@@ -104,7 +110,6 @@ export async function GET(req: NextRequest) {
     ])
 
     // Check favourites for authenticated user
-    const currentUserId = await getCurrentUserId()
     let favouritedIds: Set<string> = new Set()
     if (currentUserId) {
       const favs = await prisma.favourite.findMany({
@@ -122,7 +127,8 @@ export async function GET(req: NextRequest) {
     // An empty result is a real answer (e.g. a search with no matches) — never pad it with mock data.
     return successResponse(listingsWithFav, undefined, getPaginationMeta(total, page, limit))
   } catch (error) {
-    if (!isDemoMode()) return internalErrorResponse(error)
+    // Mock listings aren't anyone's, so the owner view never falls back to them
+    if (!isDemoMode() || mine) return internalErrorResponse(error)
     console.warn("DEMO_MODE: database unavailable, serving mock listings")
   }
 
