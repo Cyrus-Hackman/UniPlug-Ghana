@@ -10,6 +10,7 @@ import {
 import { getCurrentUserId } from "@/lib/helpers"
 import { MOCK_LISTINGS } from "@/lib/mock-data"
 import { isDemoMode } from "@/lib/demo-mode"
+import { listingCardInclude } from "@/lib/prisma-selects"
 
 // GET /api/listings — fetch all listings with filters
 export async function GET(req: NextRequest) {
@@ -97,41 +98,7 @@ export async function GET(req: NextRequest) {
         skip,
         take: limit,
         orderBy,
-        include: {
-          seller: {
-            select: {
-              id: true,
-              verificationStatus: true,
-              profile: {
-                select: {
-                  fullName: true,
-                  avatarUrl: true,
-                  averageRating: true,
-                  ratingCount: true,
-                },
-              },
-            },
-          },
-          category: {
-            select: { id: true, name: true, slug: true, icon: true, color: true },
-          },
-          subcategory: {
-            select: { id: true, name: true, slug: true },
-          },
-          institution: {
-            select: { id: true, name: true, shortName: true, slug: true },
-          },
-          campus: {
-            select: { id: true, name: true, slug: true },
-          },
-          images: {
-            orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
-            take: 3,
-          },
-          _count: {
-            select: { favourites: true, offers: true },
-          },
-        },
+        include: listingCardInclude,
       }),
       prisma.listing.count({ where }),
     ])
