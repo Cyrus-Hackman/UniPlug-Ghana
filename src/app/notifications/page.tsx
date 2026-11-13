@@ -55,69 +55,43 @@ export default function NotificationsPage() {
     try {
       const res = await fetch("/api/notifications")
       const data = await res.json()
-      if (data.success && data.data && data.data.length > 0) {
-        setNotifications(data.data)
-      } else {
-        // Sample demo notifications for Ghanaian students
-        setNotifications([
-          {
-            id: "notif-1",
-            type: "NEW_OFFER",
-            title: "New Price Offer Received! 🏷️",
-            body: "Kojo Mensah offered GHS 70 for your 'Calculus for Engineers - Stroud 7th Edition'.",
-            link: "/offers",
-            isRead: false,
-            createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-          },
-          {
-            id: "notif-2",
-            type: "NEW_MESSAGE",
-            title: "New Message from Ama Asante 💬",
-            body: "Is the Casio fx-991EX calculator still available to borrow for tomorrow's quiz?",
-            link: "/messages",
-            isRead: false,
-            createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-          },
-          {
-            id: "notif-3",
-            type: "ACCOUNT_VERIFIED",
-            title: "Student Email Verified! 🎓",
-            body: "Your University of Ghana student domain was verified. Your verified badge is now active!",
-            link: "/settings",
-            isRead: true,
-            createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-          },
-          {
-            id: "notif-4",
-            type: "NEW_REVIEW",
-            title: "5-Star Rating Received ⭐",
-            body: "Kwame Mensah left you a 5-star review: 'Punctual meeting at Balme Library! Great book.'",
-            link: "/transactions",
-            isRead: true,
-            createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-          },
-        ])
-      }
+      if (!res.ok || !data.success) throw new Error(data.error)
+      // The API returns { notifications, unreadCount }
+      setNotifications(data.data?.notifications ?? [])
     } catch {
       setNotifications([])
+      toast({ title: "Couldn't load notifications", description: "Please refresh the page to try again.", variant: "error" })
     } finally {
       setLoading(false)
     }
   }
 
   const markAllRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
     try {
-      await fetch("/api/notifications/read-all", { method: "POST" })
-    } catch {}
-    toast({ title: "All notifications marked as read", variant: "success" })
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAllRead: true }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) throw new Error(data.error)
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
+      toast({ title: "All notifications marked as read", variant: "success" })
+    } catch {
+      toast({ title: "Couldn't mark notifications as read", description: "Please try again.", variant: "error" })
+    }
   }
 
   const markSingleRead = (id: string) => {
+    // Optimistic: a missed read-receipt is harmless and the next load corrects it
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     )
-    fetch(`/api/notifications/${id}/read`, { method: "POST" }).catch(() => {})
+    fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notificationId: id }),
+    }).catch(() => {})
   }
 
   const filtered = notifications.filter((n) => {
