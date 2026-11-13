@@ -16,6 +16,9 @@ import {
   ShieldCheck,
   RefreshCw,
   Loader2,
+  Check,
+  X,
+  ArrowRight,
 } from "lucide-react"
 import { formatGHS, formatDate, formatRelativeDate } from "@/lib/utils"
 import { toast } from "@/components/ui/toaster"
@@ -25,9 +28,10 @@ interface BorrowingItem {
   startDate: string
   endDate: string
   returnedAt?: string
-  status: "PENDING" | "APPROVED" | "ACTIVE" | "RETURNED" | "OVERDUE"
-  totalPrice?: number
-  depositPaid?: number
+  status: "PENDING" | "APPROVED" | "REJECTED" | "ACTIVE" | "RETURNED" | "OVERDUE" | "CANCELLED"
+  totalPrice?: number | null
+  depositPaid?: number | null
+  isOverdue?: boolean // computed by the API
   listing: {
     id: string
     title: string
@@ -60,6 +64,7 @@ export default function BorrowingsPage() {
   const [activeTab, setActiveTab] = useState<"borrowed" | "lent">("borrowed")
   const [borrowings, setBorrowings] = useState<BorrowingItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -72,10 +77,10 @@ export default function BorrowingsPage() {
     }
   }, [session, status, activeTab])
 
-  const fetchBorrowings = async () => {
-    setLoading(true)
+  const fetchBorrowings = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true)
     try {
-      const res = await fetch(`/api/borrowings?type=${activeTab}`)
+      const res = await fetch(`/api/borrowings?type=${activeTab}&limit=50`)
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error)
       setBorrowings(data.data ?? [])
@@ -87,20 +92,32 @@ export default function BorrowingsPage() {
     }
   }
 
-  const handleReturnConfirm = async (borrowingId: string) => {
+  const updateBorrowing = async (
+    b: BorrowingItem,
+    status: "APPROVED" | "REJECTED" | "ACTIVE" | "RETURNED" | "CANCELLED",
+    confirmText?: string
+  ) => {
+    if (confirmText && !confirm(confirmText)) return
+
+    setActionLoadingId(b.id)
     try {
-      const res = await fetch(`/api/borrowings/${borrowingId}/return`, { method: "POST" })
+      const res = await fetch(`/api/borrowings/${b.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
-        toast({ title: "Item marked as returned!", variant: "success" })
-        setBorrowings((prev) =>
-          prev.map((b) => (b.id === borrowingId ? { ...b, status: "RETURNED" } : b))
-        )
+        toast({ title: data.message || "Updated", variant: "success" })
+        // Reload rather than patching locally: approving can also decline other overlapping requests
+        await fetchBorrowings(false)
       } else {
-        toast({ title: "Couldn't mark the item as returned", description: data.error || "Please try again.", variant: "error" })
+        toast({ title: "Couldn't update this borrowing", description: data.error || "Please try again.", variant: "error" })
       }
     } catch {
-      toast({ title: "Couldn't mark the item as returned", description: "Check your connection and try again.", variant: "error" })
+      toast({ title: "Couldn't update this borrowing", description: "Check your connection and try again.", variant: "error" })
+    } finally {
+      setActionLoadingId(null)
     }
   }
 
@@ -166,7 +183,10 @@ export default function BorrowingsPage() {
               {borrowings.map((b) => {
                 const partner = activeTab === "borrowed" ? b.lender : b.borrower
                 const partnerRole = activeTab === "borrowed" ? "Lender" : "Borrower"
-                const isOverdue = new Date(b.endDate).getTime() < Date.now() && b.status === "ACTIVE"
+                const isOverdue = !!b.isOverdue
+                const isLender = activeTab === "lent"
+                const busy = actionLoadingId === b.id
+                const partnerName = partner.profile?.fullName || "the other student"
 
                 return (
                   <div
@@ -201,6 +221,8 @@ export default function BorrowingsPage() {
                                   ? "badge-blue"
                                   : b.status === "RETURNED"
                                   ? "badge-green"
+                                  : b.status === "REJECTED" || b.status === "CANCELLED"
+                                  ? "badge-gray"
                                   : "badge-gold"
                               }`}
                             >
@@ -225,7 +247,7 @@ export default function BorrowingsPage() {
                           <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                              Due: {formatDate(b.endDate)}
+                              {formatDate(b.startDate)} – {formatDate(b.endDate)}
                             </span>
                             {b.depositPaid ? (
                               <span className="flex items-center gap-1 text-emerald-700">
@@ -246,14 +268,72 @@ export default function BorrowingsPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-gray-100 justify-end">
-                        {b.status === "ACTIVE" && (
+                      <div className="flex flex-wrap items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-gray-100 justify-end">
+                        {/* Lender: approve or decline a new request */}
+                        {isLender && b.status === "PENDING" && (
+                          <>
+                            <button
+                              onClick={() => updateBorrowing(b, "APPROVED")}
+                              disabled={busy}
+                              className="btn-primary btn-sm text-xs flex items-center gap-1"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => updateBorrowing(b, "REJECTED", `Decline ${partnerName}'s request?`)}
+                              disabled={busy}
+                              className="btn-ghost btn-sm text-xs text-red-600 hover:bg-red-50 flex items-center gap-1"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Decline
+                            </button>
+                          </>
+                        )}
+
+                        {/* Lender: record the hand-over once the borrower has the item */}
+                        {isLender && b.status === "APPROVED" && (
                           <button
-                            onClick={() => handleReturnConfirm(b.id)}
+                            onClick={() => updateBorrowing(b, "ACTIVE", `Confirm you've handed "${b.listing.title}" to ${partnerName}?`)}
+                            disabled={busy}
+                            className="btn-primary btn-sm text-xs flex items-center gap-1"
+                          >
+                            <ArrowRight className="w-3.5 h-3.5" />
+                            Mark handed over
+                          </button>
+                        )}
+
+                        {/* Lender: confirm the item came back */}
+                        {isLender && (b.status === "ACTIVE" || b.status === "OVERDUE") && (
+                          <button
+                            onClick={() => updateBorrowing(b, "RETURNED", `Confirm ${partnerName} returned "${b.listing.title}"?`)}
+                            disabled={busy}
                             className="btn-primary btn-sm text-xs flex items-center gap-1"
                           >
                             <CheckCircle className="w-3.5 h-3.5" />
-                            Confirm Returned
+                            Confirm returned
+                          </button>
+                        )}
+
+                        {!isLender && b.status === "ACTIVE" && (
+                          <span className="text-[11px] text-gray-500">The lender confirms the return</span>
+                        )}
+
+                        {/* Borrower can cancel until hand-over; lender can cancel an approved booking */}
+                        {(b.status === "APPROVED" || (!isLender && b.status === "PENDING")) && (
+                          <button
+                            onClick={() =>
+                              updateBorrowing(
+                                b,
+                                "CANCELLED",
+                                b.status === "PENDING" ? "Cancel your request?" : "Cancel this borrowing?"
+                              )
+                            }
+                            disabled={busy}
+                            className="btn-ghost btn-sm text-xs text-red-600 hover:bg-red-50 flex items-center gap-1"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            {b.status === "PENDING" ? "Cancel request" : "Cancel"}
                           </button>
                         )}
 
