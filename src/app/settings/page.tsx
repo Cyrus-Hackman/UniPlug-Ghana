@@ -145,8 +145,12 @@ export default function SettingsPage() {
       toast({ title: "New passwords do not match", variant: "error" })
       return
     }
-    if (newPassword.length < 6) {
-      toast({ title: "Password must be at least 6 characters", variant: "error" })
+    // Same rules as registration (enforced again on the server)
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      toast({
+        title: "Password must be at least 8 characters, with an uppercase letter and a number",
+        variant: "error",
+      })
       return
     }
     setLoading(true)
@@ -154,7 +158,7 @@ export default function SettingsPage() {
       const res = await fetch("/api/users/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
@@ -548,7 +552,7 @@ export default function SettingsPage() {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="input"
-                        placeholder="At least 6 characters"
+                        placeholder="8+ characters, an uppercase letter and a number"
                         required
                       />
                     </div>
