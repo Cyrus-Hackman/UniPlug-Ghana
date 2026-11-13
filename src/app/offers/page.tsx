@@ -80,7 +80,7 @@ export default function OffersPage() {
   const fetchOffers = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/offers?type=${activeTab}`)
+      const res = await fetch(`/api/offers?type=${activeTab}&limit=50`)
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error)
       setOffers(data.data ?? [])
@@ -311,10 +311,15 @@ export default function OffersPage() {
                       )}
 
                       {offer.status === "ACCEPTED" && (
-                        <div className="flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
+                        <div className="flex flex-wrap items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
                           <Link href="/messages" className="btn-secondary btn-sm text-xs flex items-center gap-1.5">
                             <MessageCircle className="w-3.5 h-3.5" />
                             Message to coordinate pickup
+                          </Link>
+                          {/* Accepting an offer creates a deal; it's completed or cancelled there */}
+                          <Link href="/transactions" className="btn-ghost btn-sm text-xs flex items-center gap-1">
+                            View deal
+                            <ArrowRight className="w-3.5 h-3.5" />
                           </Link>
                         </div>
                       )}
