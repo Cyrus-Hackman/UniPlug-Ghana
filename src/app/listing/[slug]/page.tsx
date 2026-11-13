@@ -122,11 +122,18 @@ export default async function ListingPage({ params }: Props) {
   const session = await auth()
   const isSeller = session?.user?.id === listing.seller.id
 
+  const isFavourited = session?.user?.id
+    ? !!(await prisma.favourite
+        .findUnique({ where: { userId_listingId: { userId: session.user.id, listingId: listing.id } } })
+        .catch(() => null))
+    : false
+
   // Everything passed to a client component is serialized into the page
   // payload, so strip the phone number here unless the seller made it public.
   const profile = listing.seller.profile
   const safeListing = {
     ...listing,
+    isFavourited,
     seller: {
       ...listing.seller,
       profile: profile

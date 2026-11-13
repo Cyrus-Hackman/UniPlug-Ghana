@@ -5,8 +5,7 @@ import Navbar from "@/components/layout/navbar"
 import ListingCard from "@/components/marketplace/listing-card"
 import Link from "next/link"
 import { Heart, ShoppingBag, ArrowRight, Loader2 } from "lucide-react"
-import { MOCK_LISTINGS } from "@/lib/mock-data"
-import { getSavedListingIds } from "@/lib/utils"
+import { toast } from "@/components/ui/toaster"
 
 export default function FavouritesPage() {
   const [savedListings, setSavedListings] = useState<any[]>([])
@@ -20,34 +19,27 @@ export default function FavouritesPage() {
     setLoading(true)
     try {
       const res = await fetch("/api/users/favourites")
-      if (res.ok) {
-        const data = await res.json()
-        if (data.success && data.data && data.data.length > 0) {
-          setSavedListings(data.data.map((f: any) => f.listing || f))
-          setLoading(false)
-          return
-        }
-      }
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error)
+      setSavedListings((data.data ?? []).map((f: any) => f.listing || f))
     } catch {
-      // Ignore and fall back to local storage below.
+      setSavedListings([])
+      toast({ title: "Couldn't load your saved items", description: "Please refresh the page to try again.", variant: "error" })
+    } finally {
+      setLoading(false)
     }
-
-    const savedIds = getSavedListingIds()
-    const localSaved = MOCK_LISTINGS.filter((listing) => savedIds.includes(listing.id))
-    setSavedListings(localSaved)
-    setLoading(false)
   }
 
-  const handleRemove = (listingId: string) => {
-    setSavedListings((prev) => prev.filter((l) => l.id !== listingId))
-
-    if (typeof window !== "undefined") {
-      const current = new Set(getSavedListingIds())
-      current.delete(listingId)
-      localStorage.setItem("student-marketplace-favourites", JSON.stringify([...current]))
+  const handleRemove = async (listingId: string) => {
+    try {
+      // The favourite endpoint toggles, so this only removes items that are currently saved
+      const res = await fetch(`/api/listings/${listingId}/favourite`, { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) throw new Error(data.error)
+      setSavedListings((prev) => prev.filter((l) => l.id !== listingId))
+    } catch {
+      toast({ title: "Couldn't remove this item", description: "Please try again.", variant: "error" })
     }
-
-    fetch(`/api/listings/${listingId}/favourite`, { method: "POST" }).catch(() => {})
   }
 
   return (
