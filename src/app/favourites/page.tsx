@@ -18,10 +18,11 @@ export default function FavouritesPage() {
   const fetchFavourites = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/users/favourites")
+      const res = await fetch("/api/users/favourites?limit=50")
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error)
-      setSavedListings((data.data ?? []).map((f: any) => f.listing || f))
+      // The API returns the saved listings themselves
+      setSavedListings(data.data ?? [])
     } catch {
       setSavedListings([])
       toast({ title: "Couldn't load your saved items", description: "Please refresh the page to try again.", variant: "error" })
