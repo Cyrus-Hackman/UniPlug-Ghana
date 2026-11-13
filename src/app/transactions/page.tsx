@@ -23,9 +23,9 @@ import { toast } from "@/components/ui/toaster"
 
 interface TransactionItem {
   id: string
-  type: "PURCHASE" | "EXCHANGE" | "BORROW" | "LEND"
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
-  amount?: number
+  type: "PURCHASE" | "EXCHANGE" | "BORROW" | "LEND" | "GIVEAWAY"
+  status: "PENDING" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DISPUTED"
+  amount?: number | null
   paymentMethod: string
   notes?: string
   createdAt: string
@@ -53,6 +53,16 @@ interface TransactionItem {
   hasReviewed?: boolean
 }
 
+// Deals that can still be completed or cancelled
+const OPEN_STATUSES: TransactionItem["status"][] = ["PENDING", "ACCEPTED", "IN_PROGRESS"]
+
+const PAYMENT_LABELS: Record<string, string> = {
+  MOBILE_MONEY: "Mobile Money (MoMo)",
+  CASH: "Cash on pickup",
+  BANK_TRANSFER: "Bank transfer",
+  PLATFORM: "Paid on UniPlug",
+}
+
 export default function TransactionsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -60,6 +70,7 @@ export default function TransactionsPage() {
   const [activeTab, setActiveTab] = useState<"purchases" | "sales">("purchases")
   const [transactions, setTransactions] = useState<TransactionItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
 
   // Review modal state
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
@@ -82,7 +93,7 @@ export default function TransactionsPage() {
   const fetchTransactions = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/transactions?type=${activeTab}`)
+      const res = await fetch(`/api/transactions?type=${activeTab}&limit=50`)
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error)
       setTransactions(data.data ?? [])
@@ -91,6 +102,34 @@ export default function TransactionsPage() {
       toast({ title: "Couldn't load your transactions", description: "Please refresh the page to try again.", variant: "error" })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const updateDeal = async (tx: TransactionItem, status: "COMPLETED" | "CANCELLED") => {
+    const question =
+      status === "COMPLETED"
+        ? `Confirm you've received "${tx.listing.title}"? This completes the deal and marks the item as sold.`
+        : `Cancel the deal for "${tx.listing.title}"? The item goes back on the market.`
+    if (!confirm(question)) return
+
+    setActionLoadingId(tx.id)
+    try {
+      const res = await fetch(`/api/transactions/${tx.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        toast({ title: data.message || "Deal updated", variant: "success" })
+        setTransactions((prev) => prev.map((t) => (t.id === tx.id ? { ...t, status } : t)))
+      } else {
+        toast({ title: "Couldn't update the deal", description: data.error || "Please try again.", variant: "error" })
+      }
+    } catch {
+      toast({ title: "Couldn't update the deal", description: "Check your connection and try again.", variant: "error" })
+    } finally {
+      setActionLoadingId(null)
     }
   }
 
@@ -189,7 +228,11 @@ export default function TransactionsPage() {
             <div className="space-y-4">
               {transactions.map((tx) => {
                 const otherParty = activeTab === "purchases" ? tx.seller : tx.buyer
-                const otherRole = activeTab === "purchases" ? "Seller" : "Buyer"
+                const isBorrow = tx.type === "BORROW"
+                const otherRole =
+                  activeTab === "purchases" ? (isBorrow ? "Lender" : "Seller") : isBorrow ? "Borrower" : "Buyer"
+                const isOpen = OPEN_STATUSES.includes(tx.status)
+                const busy = actionLoadingId === tx.id
 
                 return (
                   <div
@@ -222,6 +265,8 @@ export default function TransactionsPage() {
                                   ? "badge-green"
                                   : tx.status === "IN_PROGRESS"
                                   ? "badge-blue"
+                                  : tx.status === "CANCELLED" || tx.status === "DISPUTED"
+                                  ? "badge-red"
                                   : "badge-gold"
                               }`}
                             >
@@ -267,12 +312,46 @@ export default function TransactionsPage() {
                         </span>
                         <span className="text-[11px] text-gray-500 flex items-center md:justify-end gap-1 mt-0.5">
                           <CreditCard className="w-3 h-3 text-gray-400" />
-                          {tx.paymentMethod === "MOBILE_MONEY" ? "Mobile Money (MoMo)" : "Cash on Pickup"}
+                          {PAYMENT_LABELS[tx.paymentMethod] || "Payment method not set"}
                         </span>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-gray-100 justify-end">
+                      <div className="flex flex-wrap items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-gray-100 justify-end">
+                        {/* Borrowing deals move with the borrowing itself (hand over → return) */}
+                        {isOpen && isBorrow && (
+                          <Link href="/borrowings" className="btn-secondary btn-sm text-xs">
+                            Manage in Borrowings
+                          </Link>
+                        )}
+
+                        {/* Only the buyer confirms the item changed hands */}
+                        {isOpen && !isBorrow && activeTab === "purchases" && (
+                          <button
+                            onClick={() => updateDeal(tx, "COMPLETED")}
+                            disabled={busy}
+                            className="btn-primary btn-sm text-xs flex items-center gap-1.5"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            I received it
+                          </button>
+                        )}
+
+                        {isOpen && !isBorrow && activeTab === "sales" && (
+                          <span className="text-[11px] text-gray-500">Waiting for the buyer to confirm receipt</span>
+                        )}
+
+                        {isOpen && !isBorrow && (
+                          <button
+                            onClick={() => updateDeal(tx, "CANCELLED")}
+                            disabled={busy}
+                            className="btn-ghost btn-sm text-xs text-red-600 hover:bg-red-50 flex items-center gap-1"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            Cancel deal
+                          </button>
+                        )}
+
                         {tx.status === "COMPLETED" && (
                           <button
                             onClick={() => {
@@ -323,7 +402,10 @@ export default function TransactionsPage() {
                 <form onSubmit={handleReviewSubmit} className="space-y-4 mt-4">
                   <div>
                     <label className="text-xs font-semibold text-gray-700 block mb-2">
-                      How was trading with {reviewTransaction.seller.profile.fullName}?
+                      How was trading with{" "}
+                      {(activeTab === "purchases" ? reviewTransaction.seller : reviewTransaction.buyer).profile
+                        ?.fullName || "this student"}
+                      ?
                     </label>
                     <div className="flex items-center gap-2 justify-center py-2">
                       {[1, 2, 3, 4, 5].map((star) => (

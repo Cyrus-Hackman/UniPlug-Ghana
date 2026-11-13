@@ -51,6 +51,15 @@ export function rateLimitResponse() {
   return errorResponse("Too many requests. Please slow down.", 429)
 }
 
+// Throw inside a database transaction when a record's status changed underneath
+// the request (double-click, two tabs, the other party acting at the same time).
+// Route handlers catch it and answer with conflictResponse().
+export class ConflictError extends Error {}
+
+export function conflictResponse(message: string) {
+  return errorResponse(message, 409)
+}
+
 // Pagination helper
 export function getPaginationMeta(total: number, page: number, limit: number) {
   return {
