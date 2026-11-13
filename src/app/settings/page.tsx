@@ -86,8 +86,11 @@ export default function SettingsPage() {
     fetch("/api/profile")
       .then((r) => r.json())
       .then((data) => {
-        if (data.success && data.data) {
-          const p = data.data
+        // GET /api/profile returns the user, with profile fields nested under `.profile`.
+        // Reading them off the user object left the form blank, and saving it then
+        // wiped the stored phone/bio.
+        if (data.success && data.data?.profile) {
+          const p = data.data.profile
           setFullName(p.fullName || "")
           setPhone(p.phone || "")
           setBio(p.bio || "")
